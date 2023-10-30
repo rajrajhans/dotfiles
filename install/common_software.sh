@@ -8,6 +8,7 @@ brew_install() {
 }
 
 packages=(
+  zsh-autosuggestions
   git
   lazygit
 )
@@ -35,6 +36,7 @@ casks=(
   rectangle
   stats
   cloudflare-warp
+  obsidian
 )
 
 for cask in "${casks[@]}"; do
