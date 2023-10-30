@@ -1,0 +1,82 @@
+# Path to your oh-my-zsh installation.
+export ZSH="$HOME/.oh-my-zsh"
+
+# zsh theme
+ZSH_THEME="agnoster"
+
+# Which plugins would you like to load?
+# Standard plugins can be found in $ZSH/plugins/
+# Custom plugins may be added to $ZSH_CUSTOM/plugins/
+# Example format: plugins=(rails git textmate ruby lighthouse)
+# Add wisely, as too many plugins slow down shell startup.
+plugins=(git asdf fast-syntax-highlighting)
+
+# zsh configurations
+source $ZSH/oh-my-zsh.sh
+source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+# Preferred editor for local and remote sessions
+# if [[ -n $SSH_CONNECTION ]]; then
+#   export EDITOR='vim'
+# else
+#   export EDITOR='mvim'
+# fi
+
+# Compilation flags
+# export ARCHFLAGS="-arch x86_64"
+
+###### ALIASES ######
+# git related aliases
+alias g='git'
+alias lg='lazygit'
+alias gc='git commit -m'
+alias gcl='git clone'
+alias gs='git status'
+alias gsv='git status -v'
+alias gm='git merge'
+alias gd='git diff'
+alias gco='git checkout'
+alias gcob='git checkout -b'
+alias g-current-branch='git rev-parse --abbrev-ref HEAD'
+alias gpo='git push origin'
+alias gpoc='git push origin $(g-current-branch)' # Push the current branch to the remote "origin"
+alias gplo='git pull origin'
+alias gploc='git pull origin $(g-current-branch)'
+alias gstsh='git stash'
+alias gpop='git stash pop'
+alias gdeepclean='git clean -fdx'
+alias ghpr='gh pr view --web' # Open current branch's PR on github
+alias gresh='git reset --hard'
+
+gundo() {
+	git reset HEAD~$1
+}
+
+# aliases for folder shortcuts
+alias pro="cd ~/projects"
+alias inv='cd ~/invideo'
+alias media='cd ~/invideo/iv-pro-media'
+alias frontend='cd ~/invideo/invideo-frontend'
+alias shared='cd  ~/invideo/iv-web-shared'
+alias config='cd ~/invideo/iv-frontend-config'
+alias webassets='cd ~/invideo/iv-web-assets && yarn start'
+alias openwebassets='open ~/invideo/iv-web-assets/assets'
+alias react-playground='cd ~/projects/react-playground'
+alias revampnotes='subl ~/notesdump/02-22-revamp.md'
+
+# other aliases
+alias weather='curl v2.wttr.in' # print weather for current location (https://github.com/chubin/wttr.in)
+alias grep='grep --color=auto'  # colorize `grep` output
+alias cat='bat'
+alias nodets='ts-node'
+alias top='vtop'
+alias wst='webstorm'
+alias ls='ls -a'
+alias cls='clear'
+alias editzsh="subl ~/.zshrc"
+alias refreshzsh='source ~/.zshrc'
+alias findbyport='netstat -vanp tcp | grep '
+alias realtime='while true; do printf "%s\r" "$(date)"; done'
+alias realtimeutc='while true; do printf "%s\r" "$(date -u)"; done'
+alias checkip="curl ipinfo.io/ip"
+alias getuptimer="while true; do osascript -e 'display notification \"time for a 5 minute break\" with title \"30 minutes\" sound name \"nyc_bing_bong_cleaned\"'; sleep 1800; done;"
