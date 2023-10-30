@@ -1,13 +1,15 @@
 brew_install() {
-    echo "\n⚙️⚙️ Installing $1"
-    if brew list $1 &>/dev/null; then
-        echo "✅ ${1} is already installed"
-    else
-        brew install $2 $1 && echo "✅ $1 is installed"
-    fi
+  echo "\n⚙️⚙️ Installing $1"
+  if brew list $1 &>/dev/null; then
+    echo "✅ ${1} is already installed"
+  else
+    brew install $2 $1 && echo "✅ $1 is installed"
+  fi
 }
 
 packages=(
+  git-open
+  direnv
   zsh-autosuggestions
   git
   lazygit
