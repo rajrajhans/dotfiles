@@ -55,9 +55,9 @@ while true; do
 done
 
 declare -a FILES_TO_SYMLINK=(
-  'shell/zshrc',
-  'git/gitconfig',
-  'git/gitignore',
+  'shell/zshrc'
+  'git/gitconfig'
+  'git/gitignore'
 )
 
 main() {
