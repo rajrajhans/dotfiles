@@ -1,0 +1,14 @@
+# Folder view configuration files
+.DS_Store
+Desktop.ini
+
+# Files that might appear on external disks
+.Trashes
+
+# npm & bower
+node_modules
+npm-debug.log
+yarn-debug.log
+
+# IDEs stuff
+.idea
