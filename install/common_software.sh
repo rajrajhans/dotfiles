@@ -40,6 +40,7 @@ casks=(
   cloudflare-warp
   obsidian
   notion
+  shottr
 )
 
 for cask in "${casks[@]}"; do
