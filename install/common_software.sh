@@ -39,6 +39,7 @@ casks=(
   stats
   cloudflare-warp
   obsidian
+  notion
 )
 
 for cask in "${casks[@]}"; do
