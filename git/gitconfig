@@ -5,5 +5,11 @@ pager = delta --syntax-theme="Nord" --24-bit-color="always" --file-style="#84a0c
 email = me@rajrajhans.com
 name = Raj Rajhans
 
+[pull]
+rebase = false
+
+[rebase]
+autoStash = true
+
 [init]
 defaultBranch = main
