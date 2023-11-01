@@ -41,6 +41,7 @@ casks=(
   obsidian
   notion
   shottr
+  transmission
 )
 
 for cask in "${casks[@]}"; do
