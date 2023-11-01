@@ -78,5 +78,16 @@ for file in $HOME/dotfiles/shell/{private_shell_aliases,private_shell_functions}
 	[ -r "$file" ] && [ -f "$file" ] && source "$file"
 done
 
+execkube() {
+	echo getting pod name for $1
+	pod_name=$(kubectl get pods -n $1 -o=name | head -n 1)
+	echo got $pod_name, running exec bash
+	kubectl exec -ti $pod_name -n $1 -- bash
+}
+
+klogs() {
+	kubectl logs -f -l app=$1 -n $1 --max-log-requests 200
+}
+
 # for direnv to hook into zsh. must be at the end of the file
 eval "$(direnv hook zsh)"
