@@ -13,6 +13,7 @@ packages=(
   zsh-autosuggestions
   git
   lazygit
+  pomerium-desktop
 )
 
 for package in "${packages[@]}"; do
