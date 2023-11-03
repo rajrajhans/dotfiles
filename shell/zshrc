@@ -25,6 +25,9 @@ source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 # Compilation flags
 # export ARCHFLAGS="-arch x86_64"
 
+# add cargo binaries to path
+export PATH=$PATH:$HOME/.cargo/bin
+
 ###### ALIASES ######
 # git related aliases
 alias g='git'
