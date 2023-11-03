@@ -43,6 +43,7 @@ casks=(
   notion
   shottr
   transmission
+  itsycal
 )
 
 for cask in "${casks[@]}"; do
