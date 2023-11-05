@@ -8,6 +8,7 @@ brew_install() {
 }
 
 packages=(
+  cloudflare/cloudflare/cloudflared
   git-open
   direnv
   zsh-autosuggestions
