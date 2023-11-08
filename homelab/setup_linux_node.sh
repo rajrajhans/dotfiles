@@ -7,14 +7,15 @@ source /boot/firmware/node.env
 tee /etc/wpa_supplicant.conf >/dev/null <<EOL
 network={
     ssid="$WIFI_SSID"
-    psk="$WIFI_PASSWORD"
+    psk="$WIFI_PWD"
 }
 EOL
 
-echo "Connecting to Wi-Fi network: $WIFI_SSID"
+echo "⏳⏳ Connecting to Wi-Fi network: $WIFI_SSID"
 wpa_supplicant -i wlan0 -c /etc/wpa_supplicant.conf
 
 # configure to auto-connect to wifi on startup
+echo "⏳⏳ Configuring to auto-connect to Wi-Fi network: $WIFI_SSID"
 touch /etc/rc.local
 chmod +x /etc/rc.local
 tee -a /etc/rc.local >/dev/null <<EOL
@@ -23,6 +24,7 @@ wpa_supplicant -i wlan0 -c /etc/wpa_supplicant.conf
 EOL
 
 # create a systemd service to execute /etc/rc.local at startup
+echo "⏳⏳ Creating systemd service to execute /etc/rc.local at startup"
 tee /etc/systemd/system/rc-local.service >/dev/null <<EOL
 [Unit]
 Description=/etc/rc.local Compatibility
@@ -41,4 +43,7 @@ WantedBy=multi-user.target
 EOL
 
 # enable the rc-local service
+echo "⏳⏳ Enabling the rc-local service"
 systemctl enable rc-local
+
+echo "🟢 All done!"
