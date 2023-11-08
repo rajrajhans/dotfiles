@@ -4,15 +4,12 @@
 source /boot/firmware/node.env
 
 # connect to wifi
-tee /etc/wpa_supplicant.conf >/dev/null <<EOL
-network={
-    ssid="$WIFI_SSID"
-    psk="$WIFI_PWD"
-}
-EOL
-
 echo "⏳⏳ Connecting to Wi-Fi network: $WIFI_SSID"
-wpa_supplicant -i wlan0 -c /etc/wpa_supplicant.conf
+wpa_passphrase $WIFI_SSID $WIFI_PWD >/etc/wpa_supplicant.conf
+wpa_supplicant -i wlan0 -c /etc/wpa_supplicant.conf -B
+
+echo "⏳⏳ Waiting for Wi-Fi connection to be established"
+dhclient wlan0 -v
 
 # configure to auto-connect to wifi on startup
 echo "⏳⏳ Configuring to auto-connect to Wi-Fi network: $WIFI_SSID"
