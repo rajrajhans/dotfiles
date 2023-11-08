@@ -1,17 +1,25 @@
-# assumes that needed envs are present in /boot/node.env file
-source /boot/node.env
+#!/bin/bash
+
+# assumes that needed envs are present in /boot/firmware/node.env file
+source /boot/firmware/node.env
 
 # connect to wifi
-echo -e "network={ssid=\"$WIFI_SSID\" psk=\"$WIFI_PWD\"}" | wpa_supplicant -i wlan0 -c /dev/stdin
+tee /etc/wpa_supplicant.conf >/dev/null <<EOL
+network={
+    ssid="$WIFI_SSID"
+    psk="$WIFI_PASSWORD"
+}
+EOL
+
+echo "Connecting to Wi-Fi network: $WIFI_SSID"
+wpa_supplicant -i wlan0 -c /etc/wpa_supplicant.conf
 
 # configure to auto-connect to wifi on startup
 touch /etc/rc.local
 chmod +x /etc/rc.local
 tee -a /etc/rc.local >/dev/null <<EOL
 # Connect to Wi-Fi at startup
-WIFI_SSID="\$WIFI_SSID"
-WIFI_PWD="\$WIFI_PWD"
-echo -e "network={ssid=\\\"\$WIFI_SSID\\\" psk=\\\"\$WIFI_PWD\\\"}" | wpa_supplicant -i wlan0 -c /dev/stdin &
+wpa_supplicant -i wlan0 -c /etc/wpa_supplicant.conf
 EOL
 
 # create a systemd service to execute /etc/rc.local at startup
