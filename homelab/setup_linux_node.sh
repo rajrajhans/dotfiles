@@ -24,7 +24,7 @@ EOL
 echo "⏳⏳ Creating systemd service to execute /etc/rc.local at startup"
 tee /etc/systemd/system/rc-local.service >/dev/null <<EOL
 [Unit]
-Description=/etc/rc.local Compatibility
+Description=/etc/rc.local
 ConditionPathExists=/etc/rc.local
 
 [Service]
@@ -42,5 +42,34 @@ EOL
 # enable the rc-local service
 echo "⏳⏳ Enabling the rc-local service"
 systemctl enable rc-local
+
+echo "⏳⏳ Updating apt-get"
+apt-get update
+
+echo "⏳⏳ Installing packages"
+apt-get install -y \
+    apt-transport-https \
+    bat \
+    direnv \
+    git \
+    net-tools \
+    zsh
+
+# set zsh as default shell
+chsh -s $(which zsh)
+
+# install oh my zsh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+
+# install zsh fast-syntax-highlighting
+git clone https://github.com/zdharma-continuum/fast-syntax-highlighting.git \
+    ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/fast-syntax-highlighting
+
+git clone $DOTFILES_GIT_REPO
+
+# symlink dotfiles
+echo "⏳⏳ Setting up dotfiles"
+cd dotfiles
+/bin/bash setup_dotfiles.sh
 
 echo "🟢 All done!"
