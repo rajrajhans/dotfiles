@@ -1,7 +1,24 @@
 #!/bin/bash
 
+# validate sudo
+if [ "$EUID" -ne 0 ]; then
+    echo "❌ Please run as root"
+    exit
+fi
+
 # assumes that needed envs are present in /boot/firmware/node.env file
+echo "⏳⏳ Loading environment variables"
 source /boot/firmware/node.env
+
+# validate envs
+env_vars=("WIFI_SSID" "WIFI_PWD" "DOTFILES_GIT_REPO" "TAILSCALE_AUTH_KEY")
+
+for var in "${env_vars[@]}"; do
+    if [ -z "${!var}" ]; then
+        echo "Environment variable $var is not set"
+        exit 1
+    fi
+done
 
 ## connect to wifi
 echo "⏳⏳ Connecting to Wi-Fi network: $WIFI_SSID"
@@ -40,6 +57,7 @@ EOL
 # enable the rc-local service
 echo "⏳⏳ Enabling the rc-local service"
 systemctl enable rc-local
+echo "🟢 Done with Wi-Fi setup"
 
 ## update apt-get and install packages
 echo "⏳⏳ Updating apt-get"
@@ -52,6 +70,7 @@ apt-get install -y \
     git \
     net-tools \
     zsh
+echo "🟢 Done with package installation"
 
 ## zsh setup
 # set zsh as default shell
@@ -62,6 +81,7 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/too
 git clone https://github.com/zdharma-continuum/fast-syntax-highlighting.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/fast-syntax-highlighting
 # install zsh autosuggestions
 git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+echo "🟢 Done with zsh setup"
 
 ## dotfiles setup
 git clone $DOTFILES_GIT_REPO
@@ -69,5 +89,16 @@ git clone $DOTFILES_GIT_REPO
 echo "⏳⏳ Setting up dotfiles"
 cd dotfiles
 /bin/bash setup_dotfiles.sh
+echo "🟢 Done with dotfiles setup"
 
-echo "🟢 All done!"
+## tailscale setup
+echo "⏳⏳ Installing tailscale"
+curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/jammy.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/jammy.tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list
+apt-get update
+apt-get install -y tailscale
+echo "⏳⏳ Configuring tailscale"
+tailscale up --authkey $TAILSCALE_AUTH_KEY
+echo "🟢 Done with tailscale setup"
+
+echo "🟢🟢 All done!"
