@@ -33,6 +33,7 @@ echo "⏳⏳ Configuring to auto-connect to Wi-Fi network: $WIFI_SSID"
 touch /etc/rc.local
 chmod +x /etc/rc.local
 tee -a /etc/rc.local >/dev/null <<EOL
+#!/bin/sh
 # Connect to Wi-Fi at startup
 wpa_supplicant -i wlan0 -c /etc/wpa_supplicant.conf
 EOL
@@ -63,24 +64,24 @@ echo "🟢 Done with Wi-Fi setup"
 echo "⏳⏳ Updating apt-get"
 apt-get update
 echo "⏳⏳ Installing packages"
-apt-get install -y \
+DEBIAN_FRONTEND=noninteractive apt-get install -y \
     apt-transport-https \
     bat \
     direnv \
     git \
     net-tools \
-    zsh
+    linux-modules-extra-raspi
 echo "🟢 Done with package installation"
 
 ## zsh setup
 # set zsh as default shell
-chsh -s $(which zsh)
+#chsh -s $(which zsh)
 # install oh my zsh
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+#sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
 # install zsh fast-syntax-highlighting
-git clone https://github.com/zdharma-continuum/fast-syntax-highlighting.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/fast-syntax-highlighting
+#git clone https://github.com/zdharma-continuum/fast-syntax-highlighting.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/fast-syntax-highlighting
 # install zsh autosuggestions
-git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+#git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
 echo "🟢 Done with zsh setup"
 
 ## dotfiles setup
@@ -101,4 +102,6 @@ echo "⏳⏳ Configuring tailscale"
 tailscale up --authkey $TAILSCALE_AUTH_KEY
 echo "🟢 Done with tailscale setup"
 
-echo "🟢🟢 All done!"
+echo "🟢🟢 All done! Rebooting"
+
+reboot
