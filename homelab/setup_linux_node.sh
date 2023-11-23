@@ -102,6 +102,11 @@ echo "⏳⏳ Configuring tailscale"
 tailscale up --authkey $TAILSCALE_AUTH_KEY
 echo "🟢 Done with tailscale setup"
 
+# enable the control group subsystems for k8s to manage CPU and memory resources
+# enable memory control group support, used by k8s to enforce memory limits and reservations
+# enable tracking of swap usage in the memory resource controller, allows k8s to track and limit swap usage by pods
+sed -i '$ s/$/ cgroup_enable=cpuset cgroup_enable=memory cgroup_memory=1 swapaccount=1/' /boot/firmware/cmdline.txt
+
 echo "🟢🟢 All done! Rebooting"
 
 reboot
