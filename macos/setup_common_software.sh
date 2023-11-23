@@ -45,6 +45,8 @@ casks=(
   shottr
   transmission
   itsycal
+
+  xbar
 )
 
 for cask in "${casks[@]}"; do
