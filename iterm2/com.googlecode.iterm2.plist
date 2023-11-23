@@ -6,16 +6,6 @@
 	<true/>
 	<key>AboutToPasteTabsWithCancel_selection</key>
 	<integer>0</integer>
-	<key>AppleAntiAliasingThreshold</key>
-	<integer>1</integer>
-	<key>ApplePressAndHoldEnabled</key>
-	<false/>
-	<key>AppleScrollAnimationEnabled</key>
-	<integer>0</integer>
-	<key>AppleSmoothFixedFontsSizeThreshold</key>
-	<integer>1</integer>
-	<key>AppleWindowTabbingMode</key>
-	<string>manual</string>
 	<key>Custom Color Presets</key>
 	<dict>
 		<key>Solarized Dark - Patched</key>
@@ -1752,13 +1742,13 @@
 				<key>Alpha Component</key>
 				<real>1</real>
 				<key>Blue Component</key>
-				<real>0.3411764705882353</real>
+				<real>0.12549019607843137</real>
 				<key>Color Space</key>
 				<string>sRGB</string>
 				<key>Green Component</key>
-				<real>0.20392156862745101</real>
+				<real>0.12549019607843137</real>
 				<key>Red Component</key>
-				<real>0.15686274509803921</real>
+				<real>0.5490196078431373</real>
 			</dict>
 			<key>Send Code When Idle</key>
 			<false/>
