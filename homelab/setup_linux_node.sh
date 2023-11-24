@@ -11,7 +11,7 @@ echo "⏳⏳ Loading environment variables"
 source /boot/firmware/node.env
 
 # validate envs
-env_vars=("WIFI_SSID" "WIFI_PWD" "DOTFILES_GIT_REPO" "TAILSCALE_AUTH_KEY")
+env_vars=("WIFI_SSID" "WIFI_PWD" "DOTFILES_GIT_REPO" "TAILSCALE_AUTH_KEY" "KUBERNETES_NODE_ROLE" "KUBERNETES_MASTER_URL" "KUBERNETES_CLUSTER_TOKEN")
 
 for var in "${env_vars[@]}"; do
     if [ -z "${!var}" ]; then
@@ -102,10 +102,31 @@ echo "⏳⏳ Configuring tailscale"
 tailscale up --authkey $TAILSCALE_AUTH_KEY
 echo "🟢 Done with tailscale setup"
 
+# kubernetes setup
+echo "⏳⏳ Configuring Kubernetes"
 # enable the control group subsystems for k8s to manage CPU and memory resources
 # enable memory control group support, used by k8s to enforce memory limits and reservations
 # enable tracking of swap usage in the memory resource controller, allows k8s to track and limit swap usage by pods
 sed -i '$ s/$/ cgroup_enable=cpuset cgroup_enable=memory cgroup_memory=1 swapaccount=1/' /boot/firmware/cmdline.txt
+
+if [ "$KUBERNETES_NODE_ROLE" == "master" ]; then
+    # Install k3s
+    curl -sfL https://get.k3s.io | sh -
+
+    # set GOGC to 10
+    echo "Environment=GOGC=10" >>/etc/systemd/system/k3s.service
+
+    # disable cloud-controller in k3s systemd service
+    sed -i 's/ExecStart=\/usr\/local\/bin\/k3s server/ExecStart=\/usr\/local\/bin\/k3s server --disable-cloud-controller/' /etc/systemd/system/k3s.service
+
+    # Reload systemd to apply changes and restart service
+    systemctl daemon-reload
+    systemctl restart k3s
+
+elif [ "$KUBERNETES_NODE_ROLE" == "worker" ]; then
+    # Install k3s as a worker node
+    curl -sfL http://get.k3s.io | K3S_URL=$KUBERNETES_MASTER_URL K3S_TOKEN=$KUBERNETES_CLUSTER_TOKEN sh -
+fi
 
 echo "🟢🟢 All done! Rebooting"
 
