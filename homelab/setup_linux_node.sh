@@ -119,6 +119,11 @@ if [ "$KUBERNETES_NODE_ROLE" == "master" ]; then
     # disable cloud-controller in k3s systemd service
     sed -i 's/ExecStart=\/usr\/local\/bin\/k3s server/ExecStart=\/usr\/local\/bin\/k3s server --disable-cloud-controller/' /etc/systemd/system/k3s.service
 
+    # set kubeconfig for kubectl
+    export KUBECONFIG=~/.kube/config
+    mkdir ~/.kube 2>/dev/null
+    k3s kubectl config view --raw >"$KUBECONFIG"
+
     # Reload systemd to apply changes and restart service
     systemctl daemon-reload
     systemctl restart k3s
