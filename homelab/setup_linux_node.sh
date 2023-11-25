@@ -127,10 +127,17 @@ if [ "$KUBERNETES_NODE_ROLE" == "master" ]; then
     # Reload systemd to apply changes and restart service
     systemctl daemon-reload
     systemctl restart k3s
-
+    echo "🟢 Done with Kubernetes Master node setup"
 elif [ "$KUBERNETES_NODE_ROLE" == "worker" ]; then
     # Install k3s as a worker node
     curl -sfL http://get.k3s.io | K3S_URL=$KUBERNETES_MASTER_URL K3S_TOKEN=$KUBERNETES_CLUSTER_TOKEN sh -
+
+    # copy valie  $KUBERNETES_CONFIG_FILE to ~/.kube/config
+    mkdir ~/.kube
+    touch ~/.kube/config
+    echo "$KUBERNETES_CONFIG_FILE" >~/.kube/config
+    export KUBECONFIG=~/.kube/config
+    echo "🟢 Done with Kubernetes Worker node setup"
 fi
 
 echo "🟢🟢 All done! Rebooting"
