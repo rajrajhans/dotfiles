@@ -123,6 +123,7 @@ if [ "$KUBERNETES_NODE_ROLE" == "master" ]; then
     export KUBECONFIG=~/.kube/config
     mkdir ~/.kube 2>/dev/null
     k3s kubectl config view --raw >"$KUBECONFIG"
+    echo "export KUBECONFIG=~/.kube/config" >>~/.bashrc
 
     # Reload systemd to apply changes and restart service
     systemctl daemon-reload
@@ -137,8 +138,12 @@ elif [ "$KUBERNETES_NODE_ROLE" == "worker" ]; then
     touch ~/.kube/config
     echo "$KUBERNETES_CONFIG_FILE" >~/.kube/config
     export KUBECONFIG=~/.kube/config
+    echo "export KUBECONFIG=~/.kube/config" >>~/.bashrc
     echo "🟢 Done with Kubernetes Worker node setup"
 fi
+
+# add a hosts entry for winterfell.local to point to the k8s ingress
+echo "$KUBERNETES_INGRESS_IP winterfell.local" | tee -a /etc/hosts
 
 echo "🟢🟢 All done! Rebooting"
 
