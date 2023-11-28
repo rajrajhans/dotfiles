@@ -16,6 +16,8 @@ source $ZSH/oh-my-zsh.sh
 
 # add cargo binaries to path
 export PATH=$PATH:$HOME/.cargo/bin
+# configure git to use the auto generated commit message
+export GIT_MERGE_AUTOEDIT=no
 
 ###### ALIASES ######
 # git related aliases
