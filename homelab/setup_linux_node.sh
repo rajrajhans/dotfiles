@@ -8,7 +8,7 @@ fi
 
 # assumes that needed envs are present in /boot/firmware/node.env file
 echo "⏳⏳ Loading environment variables"
-source /boot/firmware/node.env
+source ./node.env
 
 # validate envs
 env_vars=("WIFI_SSID" "WIFI_PWD" "DOTFILES_GIT_REPO" "TAILSCALE_AUTH_KEY" "KUBERNETES_NODE_ROLE" "KUBERNETES_MASTER_URL" "KUBERNETES_CLUSTER_TOKEN")
@@ -70,7 +70,8 @@ echo "🟢 Done with DHCP config"
 echo "⏳⏳ Updating apt-get"
 apt-get update
 echo "⏳⏳ Installing packages"
-DEBIAN_FRONTEND=noninteractive apt-get install -y \
+export DEBIAN_FRONTEND=noninteractive
+apt-get install -y \
     apt-transport-https \
     bat \
     direnv \
@@ -79,7 +80,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
 
 if [ "$INSTALL_RPI_LINUX_MODULES" == "true" ]; then
     echo "⏳⏳ Installing Raspberry Pi Linux modules"
-    DEBIAN_FRONTEND=noninteractive apt-get install -y linux-modules-extra-raspi
+    apt-get install -y linux-modules-extra-raspi
 fi
 
 echo "🟢 Done with package installation"
