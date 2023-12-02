@@ -21,25 +21,26 @@ for var in "${env_vars[@]}"; do
 done
 
 ## connect to wifi
-echo "⏳⏳ Connecting to Wi-Fi network: $WIFI_SSID"
-wpa_passphrase $WIFI_SSID $WIFI_PWD >/etc/wpa_supplicant.conf
-wpa_supplicant -i wlan0 -c /etc/wpa_supplicant.conf -B
+if [ "$SETUP_WIFI" == "true" ]; then
+    echo "⏳⏳ Connecting to Wi-Fi network: $WIFI_SSID"
+    wpa_passphrase $WIFI_SSID $WIFI_PWD >/etc/wpa_supplicant.conf
+    wpa_supplicant -i wlan0 -c /etc/wpa_supplicant.conf -B
 
-echo "⏳⏳ Waiting for Wi-Fi connection to be established"
-dhclient wlan0 -v
+    echo "⏳⏳ Waiting for Wi-Fi connection to be established"
+    dhclient wlan0 -v
 
-# configure to auto-connect to wifi on startup
-echo "⏳⏳ Configuring to auto-connect to Wi-Fi network: $WIFI_SSID"
-touch /etc/rc.local
-chmod +x /etc/rc.local
-tee -a /etc/rc.local >/dev/null <<EOL
+    # configure to auto-connect to wifi on startup
+    echo "⏳⏳ Configuring to auto-connect to Wi-Fi network: $WIFI_SSID"
+    touch /etc/rc.local
+    chmod +x /etc/rc.local
+    tee -a /etc/rc.local >/dev/null <<EOL
 #!/bin/sh
 # Connect to Wi-Fi at startup
 wpa_supplicant -i wlan0 -c /etc/wpa_supplicant.conf
 EOL
-# create a systemd service to execute /etc/rc.local at startup
-echo "⏳⏳ Creating systemd service to execute /etc/rc.local at startup"
-tee /etc/systemd/system/rc-local.service >/dev/null <<EOL
+    # create a systemd service to execute /etc/rc.local at startup
+    echo "⏳⏳ Creating systemd service to execute /etc/rc.local at startup"
+    tee /etc/systemd/system/rc-local.service >/dev/null <<EOL
 [Unit]
 Description=/etc/rc.local
 ConditionPathExists=/etc/rc.local
@@ -55,10 +56,15 @@ SysVStartPriority=99
 [Install]
 WantedBy=multi-user.target
 EOL
-# enable the rc-local service
-echo "⏳⏳ Enabling the rc-local service"
-systemctl enable rc-local
-echo "🟢 Done with Wi-Fi setup"
+    # enable the rc-local service
+    echo "⏳⏳ Enabling the rc-local service"
+    systemctl enable rc-local
+    echo "🟢 Done with Wi-Fi setup"
+fi
+
+echo "⏳⏳ Requesting DHCP lease"
+dhclient -v
+echo "🟢 Done with DHCP config"
 
 ## update apt-get and install packages
 echo "⏳⏳ Updating apt-get"
@@ -69,8 +75,13 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
     bat \
     direnv \
     git \
-    net-tools \
-    linux-modules-extra-raspi
+    net-tools
+
+if [ "$INSTALL_RPI_LINUX_MODULES" == "true" ]; then
+    echo "⏳⏳ Installing Raspberry Pi Linux modules"
+    DEBIAN_FRONTEND=noninteractive apt-get install -y linux-modules-extra-raspi
+fi
+
 echo "🟢 Done with package installation"
 
 ## zsh setup
