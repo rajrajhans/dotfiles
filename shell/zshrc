@@ -42,6 +42,7 @@ alias gdeepclean='git clean -fdx'
 alias ghpr='gh pr view --web' # Open current branch's PR on github
 alias gresh='git reset --hard'
 alias gupdate='git checkout main && git pull origin main && git checkout - && git merge main'
+alias gsubupdate='git submodule update --init --recursive'
 
 gundo() {
 	git reset HEAD~$1
