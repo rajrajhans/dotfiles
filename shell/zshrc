@@ -43,6 +43,7 @@ alias ghpr='gh pr view --web' # Open current branch's PR on github
 alias gresh='git reset --hard'
 alias gupdate='git checkout main && git pull origin main && git checkout - && git merge main'
 alias gsubupdate='git submodule update --init --recursive'
+alias gbranches='git branch --sort=-committerdate'
 
 gundo() {
 	git reset HEAD~$1
@@ -70,9 +71,11 @@ alias realtimeutc='while true; do printf "%s\r" "$(date -u)"; done'
 alias checkip="curl ipinfo.io/ip"
 alias getuptimer="while true; do osascript -e 'display notification \"time for a 5 minute break\" with title \"30 minutes\" sound name \"nyc_bing_bong_cleaned\"'; sleep 1800; done;"
 
-for file in $HOME/dotfiles/shell/{private_shell_aliases,private_shell_functions}; do
-	[ -r "$file" ] && [ -f "$file" ] && source "$file"
-done
+# kubectl aliases
+alias kc='kubectl'
+alias kcg='kubectl get'
+alias kcga='kubectl get --all-namespaces'
+alias kcapply='kubectl apply -f'
 
 execkube() {
 	echo getting pod name for $1
@@ -84,6 +87,10 @@ execkube() {
 klogs() {
 	kubectl logs -f -l app=$1 -n $1 --max-log-requests 200
 }
+
+for file in $HOME/dotfiles/shell/{private_shell_aliases,private_shell_functions}; do
+	[ -r "$file" ] && [ -f "$file" ] && source "$file"
+done
 
 # for direnv to hook into zsh. must be at the end of the file
 eval "$(direnv hook zsh)"
