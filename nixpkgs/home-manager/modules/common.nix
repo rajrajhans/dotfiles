@@ -34,6 +34,7 @@
     nodePackages.prettier
     nodePackages.serve
     nodePackages.tailwindcss
+    nodePackages.ts-node
 
     rustc
     cargo
