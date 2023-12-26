@@ -57,6 +57,7 @@
     caddy
 
     rclone
+    syncthing
   ] ++ lib.optionals stdenv.isDarwin [
     coreutils
   ] ++ lib.optionals stdenv.isLinux [
