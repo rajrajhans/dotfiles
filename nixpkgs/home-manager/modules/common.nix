@@ -32,7 +32,7 @@
     nodejs-18_x
     nodePackages.eslint_d
     nodePackages.prettier
-    nodePackages.serve
+    nodePackages.live-server
     nodePackages.tailwindcss
     nodePackages.ts-node
 
