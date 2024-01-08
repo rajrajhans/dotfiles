@@ -56,6 +56,7 @@ done
 
 declare -a FILES_TO_SYMLINK=(
   'shell/zshrc'
+  'shell/wakatime.cfg'
   'git/gitconfig'
   'git/gitignore'
 )
