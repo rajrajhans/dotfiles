@@ -96,3 +96,5 @@ ulimit -n 20000
 
 # for direnv to hook into zsh. must be at the end of the file
 eval "$(direnv hook zsh)"
+
+. $HOMEBREW_PREFIX/etc/profile.d/z.sh
