@@ -15,6 +15,7 @@ packages=(
   lazygit
   pomerium-desktop
   nmap
+  z
 )
 
 for package in "${packages[@]}"; do
