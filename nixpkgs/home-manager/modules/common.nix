@@ -21,7 +21,6 @@
     delta
     neofetch
     tealdeer
-    zoxide
     gh
     ffmpeg_5-full
     (nerdfonts.override { fonts = [ "FiraCode" ]; })
@@ -46,10 +45,7 @@
     tokei
     yarn
 
-    glow
     gum
-    vhs
-
     duf
 
     nixpkgs-fmt
