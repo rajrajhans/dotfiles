@@ -41,6 +41,7 @@
 
     yt-dlp
     speedtest-cli
+    git-lfs
 
     tokei
     yarn
