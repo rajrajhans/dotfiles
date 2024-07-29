@@ -18,7 +18,6 @@
     bottom
     bat
     jq
-    delta
     neofetch
     tealdeer
     gh
