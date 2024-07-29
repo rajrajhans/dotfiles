@@ -25,9 +25,6 @@
     gifsicle
     (nerdfonts.override { fonts = [ "FiraCode" ]; })
 
-    neovim
-    helix
-
     nodejs-18_x
     nodePackages.eslint_d
     nodePackages.prettier
@@ -55,7 +52,6 @@
     caddy
 
     rclone
-    syncthing
   ] ++ lib.optionals stdenv.isDarwin [
     coreutils
   ] ++ lib.optionals stdenv.isLinux [
