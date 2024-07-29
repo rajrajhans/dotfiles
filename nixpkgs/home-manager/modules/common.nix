@@ -23,6 +23,7 @@
     tealdeer
     gh
     ffmpeg_5-full
+    gifsicle
     (nerdfonts.override { fonts = [ "FiraCode" ]; })
 
     neovim
