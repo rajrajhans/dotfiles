@@ -27,6 +27,8 @@ export PATH=$PATH:$HOME/.cargo/bin
 # configure git to use the auto generated commit message
 export GIT_MERGE_AUTOEDIT=no
 
+export LS_COLORS="$(vivid generate molokai)"
+
 ###### ALIASES ######
 # git related aliases
 alias g='git'
@@ -70,6 +72,7 @@ alias weather='curl v2.wttr.in' # print weather for current location (https://gi
 alias grep='grep --color=auto'  # colorize `grep` output
 alias cat='bat'
 alias top='vtop'
+alias ls='ls --color=auto' # colorize `ls` output
 alias ls='ls -a'
 alias l='ls -lhat'
 alias cls='clear'
