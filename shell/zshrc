@@ -57,6 +57,10 @@ gundo() {
 	git reset HEAD~$1
 }
 
+# ffmpeg
+alias ffmpeg='ffmpeg -hide_banner'
+alias ffprobe='ffprobe -hide_banner'
+
 # aliases for folder shortcuts
 alias pro="cd ~/projects"
 alias dotfiles="code ~/dotfiles"
