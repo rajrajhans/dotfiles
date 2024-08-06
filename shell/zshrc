@@ -73,8 +73,8 @@ alias grep='grep --color=auto'  # colorize `grep` output
 alias cat='bat'
 alias top='btm'
 alias ls='ls --color=auto' # colorize `ls` output
-alias ls='ls -a'
 alias l='ls -lhat'
+alias ll='l'
 alias cls='clear'
 alias refreshzsh='source ~/.zshrc'
 alias findbyport='netstat -vanp tcp | grep '
