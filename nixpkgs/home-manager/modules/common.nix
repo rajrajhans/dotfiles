@@ -52,6 +52,8 @@
     caddy
 
     rclone
+    k9s
+    rar
   ] ++ lib.optionals stdenv.isDarwin [
     coreutils
   ] ++ lib.optionals stdenv.isLinux [
