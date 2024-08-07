@@ -17,12 +17,12 @@
   outputs = inputs @ { self, nixpkgs, home-manager, nixpkgsUnstable, darwin, ... }: {
     homeConfigurations = {
       mbp = home-manager.lib.homeManagerConfiguration {
-        pkgs = inputs.nixpkgs.legacyPackages.aarch64-darwin;
+        pkgs = import nixpkgs { system = "aarch64-darwin"; config.allowUnfree = true; };
         modules = [ ./nixpkgs/home-manager/mbp.nix ];
         extraSpecialArgs = { pkgsUnstable = inputs.nixpkgsUnstable.legacyPackages.aarch64-darwin; };
       };
     };
-    
+
     darwinConfigurations = {
       # nix build .#darwinConfigurations.mbp2021.system
       # ./result/sw/bin/darwin-rebuild switch --flake .
