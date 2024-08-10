@@ -37,7 +37,7 @@
     rustfmt
 
     yt-dlp
-    speedtest-cli
+    delta
     git-lfs
 
     tokei
@@ -54,6 +54,7 @@
     rclone
     k9s
     rar
+    imagemagick
   ] ++ lib.optionals stdenv.isDarwin [
     coreutils
   ] ++ lib.optionals stdenv.isLinux [
