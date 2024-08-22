@@ -82,6 +82,7 @@ alias realtime='while true; do printf "%s\r" "$(date)"; done'
 alias realtimeutc='while true; do printf "%s\r" "$(date -u)"; done'
 alias checkip="curl ipinfo.io/ip"
 alias getuptimer="while true; do osascript -e 'display notification \"time for a 5 minute break\" with title \"30 minutes\" sound name \"nyc_bing_bong_cleaned\"'; sleep 1800; done;"
+alias code='cursor'
 
 # kubectl aliases
 alias kc='kubectl'
