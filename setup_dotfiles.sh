@@ -59,6 +59,7 @@ declare -a FILES_TO_SYMLINK=(
   'shell/wakatime.cfg'
   'git/gitconfig'
   'git/gitignore'
+  'config/iex.exs'
 )
 
 main() {
