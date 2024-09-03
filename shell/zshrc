@@ -1,20 +1,13 @@
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
+ZSH_CUSTOM="$HOME/rdrive/configs/oh-my-zsh-custom-plugins"
 
 # zsh theme
 ZSH_THEME="agnoster"
 
-# Which plugins would you like to load?
-# Standard plugins can be found in $ZSH/plugins/
-# Custom plugins may be added to $ZSH_CUSTOM/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
-plugins=(git fast-syntax-highlighting zsh-autosuggestions)
-
-# zsh configurations
-source $ZSH/oh-my-zsh.sh
-
-HISTFILE=~/rdrive/configs/.zsh_history
+HISTORY_START_WITH_GLOBAL=true
+HISTORY_BASE="$HOME/rdrive/configs/zsh-per-directory-history"
+HISTFILE="$HOME/rdrive/configs/.zsh_history"
 HISTSIZE=100000000
 SAVEHIST=100000000
 setopt EXTENDED_HISTORY
@@ -23,6 +16,17 @@ setopt HIST_EXPIRE_DUPS_FIRST
 setopt HIST_IGNORE_ALL_DUPS
 setopt HIST_SAVE_NO_DUPS
 setopt HIST_FIND_NO_DUPS
+
+# Which plugins would you like to load?
+# Standard plugins can be found in $ZSH/plugins/
+# Custom plugins may be added to $ZSH_CUSTOM/plugins/
+# Example format: plugins=(rails git textmate ruby lighthouse)
+# Add wisely, as too many plugins slow down shell startup.
+plugins=(git fast-syntax-highlighting zsh-autosuggestions zsh-fzf-history-search per-directory-history)
+
+# zsh configurations
+source $ZSH/oh-my-zsh.sh
+
 # add cargo binaries to path
 export PATH=$PATH:$HOME/.cargo/bin
 # configure git to use the auto generated commit message
