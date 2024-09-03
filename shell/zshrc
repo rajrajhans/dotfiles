@@ -14,6 +14,7 @@ plugins=(git fast-syntax-highlighting zsh-autosuggestions)
 # zsh configurations
 source $ZSH/oh-my-zsh.sh
 
+HISTFILE=~/rdrive/configs/.zsh_history
 HISTSIZE=100000000
 SAVEHIST=100000000
 setopt EXTENDED_HISTORY
@@ -65,7 +66,7 @@ alias ffprobe='ffprobe -hide_banner'
 
 # aliases for folder shortcuts
 alias pro="cd ~/projects"
-alias dotfiles="code ~/dotfiles"
+alias dotfiles="cd ~/dotfiles && code ."
 
 # other aliases
 alias weather='curl v2.wttr.in' # print weather for current location (https://github.com/chubin/wttr.in)
