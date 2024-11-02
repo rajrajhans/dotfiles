@@ -94,6 +94,7 @@ alias kc='kubectl'
 alias kcg='kubectl get'
 alias kcga='kubectl get --all-namespaces'
 alias kcapply='kubectl apply -f'
+RPROMPT='$(kube_ps1)'
 
 execkube() {
 	echo getting pod name for $1
