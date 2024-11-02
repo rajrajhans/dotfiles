@@ -16,6 +16,8 @@ packages=(
   pomerium-desktop
   nmap
   z
+  openmtp
+  kubectx
 )
 
 for package in "${packages[@]}"; do
