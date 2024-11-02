@@ -22,7 +22,7 @@ setopt HIST_FIND_NO_DUPS
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git fast-syntax-highlighting zsh-autosuggestions zsh-fzf-history-search per-directory-history)
+plugins=(git fast-syntax-highlighting zsh-autosuggestions zsh-fzf-history-search per-directory-history kube-ps1)
 
 # zsh configurations
 source $ZSH/oh-my-zsh.sh
