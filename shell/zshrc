@@ -94,6 +94,15 @@ alias kc='kubectl'
 alias kcg='kubectl get'
 alias kcga='kubectl get --all-namespaces'
 alias kcapply='kubectl apply -f'
+KUBE_PS1_CLUSTER_FUNCTION=cluster_name
+function cluster_name() {
+	local cluster_name=$(kubectl config current-context)
+	if [[ $cluster_name =~ [Pp][Rr][Oo][Dd] ]]; then
+		echo "PROD"
+	else
+		echo "$cluster_name"
+	fi
+}
 RPROMPT='$(kube_ps1)'
 
 execkube() {
