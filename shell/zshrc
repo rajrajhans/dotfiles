@@ -92,6 +92,8 @@ alias code='cursor'
 # kubectl aliases
 alias kc='kubectl'
 alias kcg='kubectl get'
+alias kcgpo='kubectl get pods'
+alias kcpo='kubectl port-forward'
 alias kcga='kubectl get --all-namespaces'
 alias kcapply='kubectl apply -f'
 KUBE_PS1_CLUSTER_FUNCTION=cluster_name
