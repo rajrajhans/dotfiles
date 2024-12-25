@@ -27,8 +27,9 @@ plugins=(git fast-syntax-highlighting zsh-autosuggestions zsh-fzf-history-search
 # zsh configurations
 source $ZSH/oh-my-zsh.sh
 
-# add cargo binaries to path
+# add binaries to path
 export PATH=$PATH:$HOME/.cargo/bin
+export PATH=~/.npm-global/bin:$PATH
 # configure git to use the auto generated commit message
 export GIT_MERGE_AUTOEDIT=no
 
