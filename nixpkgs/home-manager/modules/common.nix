@@ -13,6 +13,7 @@
     wget
     fzf
     glow
+    rsync
     tmux
     vivid
     bottom

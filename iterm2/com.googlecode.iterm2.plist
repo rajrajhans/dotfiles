@@ -1522,6 +1522,17 @@
 					<key>Text</key>
 					<string>0x1</string>
 				</dict>
+				<key>0xf702-0x380000-0x7b</key>
+				<dict>
+					<key>Action</key>
+					<integer>2</integer>
+					<key>Label</key>
+					<string></string>
+					<key>Text</key>
+					<string></string>
+					<key>Version</key>
+					<integer>1</integer>
+				</dict>
 				<key>0xf703-0x220000-0x0</key>
 				<dict>
 					<key>Action</key>
@@ -1556,6 +1567,17 @@
 					<integer>11</integer>
 					<key>Text</key>
 					<string>0x5</string>
+				</dict>
+				<key>0xf703-0x380000-0x7c</key>
+				<dict>
+					<key>Action</key>
+					<integer>0</integer>
+					<key>Label</key>
+					<string></string>
+					<key>Text</key>
+					<string></string>
+					<key>Version</key>
+					<integer>1</integer>
 				</dict>
 				<key>0xf704-0x20000-0x0</key>
 				<dict>
