@@ -56,6 +56,7 @@
     k9s
     rar
     imagemagick
+    age
   ] ++ lib.optionals stdenv.isDarwin [
     coreutils
   ] ++ lib.optionals stdenv.isLinux [
