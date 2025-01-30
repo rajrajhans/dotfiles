@@ -22,9 +22,9 @@
     neofetch
     tealdeer
     gh
-    ffmpeg_5-full
+    ffmpeg_6-full
     gifsicle
-    (nerdfonts.override { fonts = [ "FiraCode" ]; })
+    pkgs.nerd-fonts.fira-code
 
     nodejs-18_x
     nodePackages.eslint_d
