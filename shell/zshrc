@@ -63,6 +63,52 @@ alias gupdate='git checkout main && git pull origin main && git checkout - && gi
 alias gsubupdate='git submodule update --init --recursive'
 alias gbranches='git branch --sort=-committerdate'
 
+unalias ghprcfcmt 2>/dev/null || true
+unset -f ghprcfcmt 2>/dev/null || true
+ghprcfcmt() {
+	PR_OUTPUT=$(gh pr create -f 2>&1)
+	PR_URL=$(echo "$PR_OUTPUT" | grep -oE 'https://github.com/[^ ]+/pull/[0-9]+')
+	PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+
+	if [ -z "$PR_URL" ]; then
+		PR_URL=$(gh pr view --json url --jq '.url' 2>/dev/null)
+	fi
+	if [ -z "$PR_NUMBER" ]; then
+		PR_NUMBER=$(gh pr view --json number --jq '.number' 2>/dev/null)
+	fi
+
+	echo "🚀 PR created or found: ${PR_URL:-<none>}"
+	echo "🔢 Pull request number: ${PR_NUMBER:+#$PR_NUMBER}"
+
+	if [ -n "$PR_NUMBER" ]; then
+		ghprcomment "$PR_NUMBER"
+	else
+		echo "⚠️ Could not determine PR number; skipping comment."
+		echo "✅ Done."
+	fi
+}
+
+unalias ghprcomment 2>/dev/null || true
+unset -f ghprcomment 2>/dev/null || true
+ghprcomment() {
+	local pr_input="$1"
+	local pr_number="$pr_input"
+
+	if [ -z "$pr_number" ]; then
+		pr_number=$(gh pr view --json number --jq '.number' 2>/dev/null)
+	fi
+
+	if [ -z "$pr_number" ]; then
+		echo "⚠️ Could not determine PR number. Provide one explicitly, e.g., 'ghprcomment 123'."
+		return 1
+	fi
+
+	echo "🔢 Target PR: #$pr_number"
+	gh issue comment "$pr_number" --body '@claude please review this PR. Focus deeply on only two things - 1st - things that can break production and 2nd - any todos that might have gotten left behind'
+	echo "💬 Comment posted asking @claude to review."
+	echo "✅ Done."
+}
+
 gundo() {
 	git reset HEAD~$1
 }
