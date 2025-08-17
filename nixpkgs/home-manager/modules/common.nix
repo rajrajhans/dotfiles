@@ -26,7 +26,7 @@
     gifsicle
     pkgs.nerd-fonts.fira-code
 
-    nodejs-18_x
+    nodejs_20
     nodePackages.eslint_d
     nodePackages.prettier
     nodePackages.live-server
@@ -59,6 +59,7 @@
     age
 
     llm
+    syncthing-macos
   ] ++ lib.optionals stdenv.isDarwin [
     coreutils
   ] ++ lib.optionals stdenv.isLinux [
