@@ -12,6 +12,7 @@
     zsh
     wget
     fzf
+    yazi
     glow
     rsync
     tmux
