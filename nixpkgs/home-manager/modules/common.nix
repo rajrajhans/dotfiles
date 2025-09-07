@@ -59,6 +59,7 @@
     age
 
     llm
+    claude-code
     syncthing-macos
   ] ++ lib.optionals stdenv.isDarwin [
     coreutils
