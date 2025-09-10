@@ -58,10 +58,11 @@
     rar
     imagemagick
     age
+    just
 
     llm
-    just
     claude-code
+    vlc-bin
     syncthing-macos
     (pkgs.callPackage ../../ccusage.nix { })
   ] ++ lib.optionals stdenv.isDarwin [
