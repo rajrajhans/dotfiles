@@ -1,0 +1,52 @@
+{
+  "mcpServers": {
+    "nixos": {
+      "command": "nix",
+      "args": ["run", "github:utensils/mcp-nixos", "--"]
+    }
+  },
+  "permissions": {
+    "allow": [
+      "mcp__deep-wiki__read_wiki_contents",
+      "mcp__deep-wiki__ask_question",
+      "mcp__deep-wiki__read_wiki_structure",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:npmjs.com)",
+      "Bash(curl:*)",
+      "Bash(ls:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(ln:*)",
+      "Bash(mkdir:*)",
+      "Bash(chmod:*)",
+      "Bash(find:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(grep:*)",
+      "Bash(awk:*)",
+      "Bash(sed:*)",
+      "Bash(cat:*)",
+      "Bash(echo:*)",
+      "Bash(touch:*)",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(rg:*)",
+      "Bash(run:*)",
+      "Bash(nix-env:*)",
+      "Bash(nix develop:*)",
+      "Bash(nix run:*)",
+      "Bash(nix flake:*)",
+      "Bash(nix build:*)",
+      "Bash(hostname:*)",
+      "Bash(open:*)"
+    ],
+    "deny": ["Bash(rm:-rf)"]
+  },
+  "enabledMcpjsonServers": ["deep-wiki"],
+  "enableAllProjectMcpServers": true,
+  "includeCoAuthoredBy": false,
+  "cleanupPeriodDays": 30,
+  "env": {
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "0"
+  }
+}
