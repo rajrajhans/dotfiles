@@ -60,6 +60,7 @@
     age
 
     llm
+    just
     claude-code
     syncthing-macos
     (pkgs.callPackage ../../ccusage.nix { })
