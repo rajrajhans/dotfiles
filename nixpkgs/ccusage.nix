@@ -1,0 +1,43 @@
+{ lib
+, buildNpmPackage
+, fetchzip
+, nodejs_22
+}:
+
+buildNpmPackage rec {
+  pname = "ccusage";
+  version = "16.2.2";
+
+  nodejs = nodejs_22;
+
+  src = fetchzip {
+    url = "https://registry.npmjs.org/${pname}/-/${pname}-${version}.tgz";
+    hash = "sha256-w8HBM4zHBhJTYwHSm9spEQ+3efr670HeeAgDXzAWnjw=";
+  };
+
+  npmDepsHash = "sha256-w/CeF0QXFMf6YhyKYb71CmCGbdcWRJI3liVFh3uoIMk=";
+
+  dontNpmBuild = true;
+
+  installPhase = ''
+    runHook preInstall
+
+    mkdir -p $out/bin $out/lib/node_modules/${pname}
+    cp -r . $out/lib/node_modules/${pname}/
+
+    ln -s $out/lib/node_modules/${pname}/dist/index.js $out/bin/${pname}
+    chmod +x $out/bin/${pname}
+
+    runHook postInstall
+  '';
+
+  meta = {
+    description = "Analyze your Claude Code token usage and costs from local JSONL files";
+    homepage = "https://github.com/ryoppippi/ccusage";
+    license = lib.licenses.mit;
+    mainProgram = pname;
+    maintainers = [ ];
+  };
+}
+
+
