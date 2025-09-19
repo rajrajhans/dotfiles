@@ -61,7 +61,6 @@
     just
 
     llm
-    claude-code
     vlc-bin
     syncthing-macos
     (pkgs.callPackage ../../ccusage.nix { })
