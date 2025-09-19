@@ -64,6 +64,7 @@
     vlc-bin
     syncthing-macos
     (pkgs.callPackage ../../ccusage.nix { })
+    (pkgs.callPackage ../../claude-code.nix { })
   ] ++ lib.optionals stdenv.isDarwin [
     coreutils
   ] ++ lib.optionals stdenv.isLinux [

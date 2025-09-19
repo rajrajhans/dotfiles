@@ -18,7 +18,6 @@ packages=(
   z
   openmtp
   kubectx
-  claude-code
 )
 
 for package in "${packages[@]}"; do
