@@ -138,6 +138,7 @@ alias checkip="curl ipinfo.io/ip"
 alias getuptimer="while true; do osascript -e 'display notification \"time for a 5 minute break\" with title \"30 minutes\" sound name \"nyc_bing_bong_cleaned\"'; sleep 1800; done;"
 alias code='cursor'
 alias llm='llm --system "keep answers concise, no markdown, no fluff"'
+alias ccc='claude --dangerously-skip-permissions'
 
 # kubectl aliases
 alias kc='kubectl'
