@@ -30,7 +30,6 @@ casks=(
   insomnia
 
   # utility tools
-  vlc
   bitwarden
   rectangle
   stats
