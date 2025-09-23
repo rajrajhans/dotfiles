@@ -143,7 +143,7 @@ alias psbeam='ps aux | grep beam | grep "\-name" | awk '\''{for(i=1;i<=NF;i++) i
 
 # ai
 alias code='cursor'
-alias llm='llm --system "keep answers concise, no markdown, no fluff"'
+alias llm='llm -t default'
 alias ccc='claude --dangerously-skip-permissions'
 
 # kubectl aliases
