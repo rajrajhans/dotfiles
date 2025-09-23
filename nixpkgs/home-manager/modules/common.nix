@@ -22,10 +22,16 @@
     jq
     neofetch
     tealdeer
-    gh
     ffmpeg_6-full
     gifsicle
     pkgs.nerd-fonts.fira-code
+    zoxide
+    direnv
+    git
+    git-open
+    gh
+    lazygit
+    nmap
 
     nodejs_20
     nodePackages.eslint_d
@@ -59,6 +65,8 @@
     imagemagick
     age
     just
+
+    kubectx
 
     llm
     vlc-bin

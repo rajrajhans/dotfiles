@@ -9,15 +9,7 @@ brew_install() {
 
 packages=(
   cloudflare/cloudflare/cloudflared
-  git-open
-  direnv
-  git
-  lazygit
   pomerium-desktop
-  nmap
-  z
-  openmtp
-  kubectx
 )
 
 for package in "${packages[@]}"; do
