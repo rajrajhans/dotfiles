@@ -6,8 +6,9 @@
   ];
 
   # Minimal server profile - packages and basic shell config only
-  # No home.username, home.homeDirectory, etc. - let servers manage their own
-
+  # Auto-detect user and home directory from environment
+  home.username = builtins.getEnv "USER";
+  home.homeDirectory = builtins.getEnv "HOME";
   home.stateVersion = "22.05";
 
   # Core server packages
