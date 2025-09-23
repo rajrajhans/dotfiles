@@ -33,6 +33,7 @@
     direnv
     age
     duf
+    neofetch
 
     # Documentation
     tealdeer
