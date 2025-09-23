@@ -185,14 +185,12 @@ done
 
 ulimit -n 20000
 
-# just completion for zsh
-# See: https://just.systems/man/en/shell-completion-scripts.html
+# hooks
+## just completion for zsh (https://just.systems/man/en/shell-completion-scripts.html)
 if command -v just >/dev/null 2>&1; then
 	autoload -Uz compinit && compinit
 	eval "$(just --completions zsh)"
 fi
 
-# for direnv to hook into zsh. must be at the end of the file
 eval "$(direnv hook zsh)"
-
-. $HOMEBREW_PREFIX/etc/profile.d/z.sh
+eval "$(zoxide init zsh)"
