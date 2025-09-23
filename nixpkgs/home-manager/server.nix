@@ -39,49 +39,6 @@
     tealdeer
   ];
 
-  # Minimal ZSH configuration with useful server aliases
-  programs.zsh = {
-    enable = true;
-
-    shellAliases = {
-      # Git aliases (essential ones only)
-      g = "git";
-      gs = "git status";
-      gc = "git commit -m";
-      gd = "git diff";
-      gco = "git checkout";
-      gcob = "git checkout -b";
-      gpo = "git push origin";
-      gplo = "git pull origin";
-
-      # System aliases
-      cat = "bat";
-      top = "btm";
-      ll = "ls -lhat";
-      l = "ls -lhat";
-      grep = "grep --color=auto";
-
-      # Utility aliases
-      checkip = "curl ipinfo.io/ip";
-    };
-
-    # Essential ZSH configuration
-    initExtra = ''
-      # Direnv hook
-      eval "$(direnv hook zsh)"
-
-      # Basic history settings
-      HISTSIZE=10000
-      SAVEHIST=10000
-      setopt EXTENDED_HISTORY
-      setopt INC_APPEND_HISTORY
-      setopt HIST_IGNORE_DUPS
-
-      # Increase file descriptor limit
-      ulimit -n 20000
-    '';
-  };
-
   # Enable direnv for project-specific environments
   programs.direnv.enable = true;
   programs.direnv.nix-direnv.enable = true;
