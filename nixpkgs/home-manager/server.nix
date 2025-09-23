@@ -5,10 +5,9 @@
     ./modules/home-manager.nix
   ];
 
-  # Minimal server profile - packages and basic shell config only
-  # Auto-detect user and home directory from environment
-  home.username = builtins.getEnv "USER";
-  home.homeDirectory = builtins.getEnv "HOME";
+  # Server-specific user config - edit these values for your server
+  home.username = "user";
+  home.homeDirectory = "/home/user";
   home.stateVersion = "22.05";
 
   # Core server packages
