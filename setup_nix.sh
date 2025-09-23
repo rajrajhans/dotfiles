@@ -1,9 +1,16 @@
 #!/bin/bash
 
 function nix-profile() {
-    # later when we have more profiles, which profile to choose can be selected here. right now, there's just one.
-    local profile="mbp"
-    echo $profile
+    # Auto-detect profile based on system, or allow override with NIX_PROFILE env var
+    if [ -n "$NIX_PROFILE" ]; then
+        echo "$NIX_PROFILE"
+    else
+        case "$(uname)" in
+            "Darwin") echo "mbp" ;;
+            "Linux") echo "server" ;;
+            *) echo "mbp" ;;  # default fallback
+        esac
+    fi
 }
 
 function nix-build() {

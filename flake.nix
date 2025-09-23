@@ -21,6 +21,12 @@
         modules = [ ./nixpkgs/home-manager/mbp.nix ];
         extraSpecialArgs = { pkgsUnstable = inputs.nixpkgsUnstable.legacyPackages.aarch64-darwin; };
       };
+
+      server = home-manager.lib.homeManagerConfiguration {
+        pkgs = import nixpkgs { system = "x86_64-linux"; config.allowUnfree = true; };
+        modules = [ ./nixpkgs/home-manager/server.nix ];
+        extraSpecialArgs = { pkgsUnstable = inputs.nixpkgsUnstable.legacyPackages.x86_64-linux; };
+      };
     };
 
     darwinConfigurations = {
