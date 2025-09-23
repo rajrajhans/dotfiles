@@ -6,13 +6,13 @@
 
 buildNpmPackage rec {
   pname = "ccusage";
-  version = "16.2.2";
+  version = "17.0.2";
 
   nodejs = nodejs_22;
 
   src = fetchzip {
     url = "https://registry.npmjs.org/${pname}/-/${pname}-${version}.tgz";
-    hash = "sha256-w8HBM4zHBhJTYwHSm9spEQ+3efr670HeeAgDXzAWnjw=";
+    hash = "sha256-/ZR+YeGAKHMfsLFPBzhMje9btsnoMotx8DB/YPztopw=";
   };
 
   npmDepsHash = "sha256-yDH1epZ3wVRFcLgbZ511055wXP/4EQhCL3TcAWOyyfs=";
