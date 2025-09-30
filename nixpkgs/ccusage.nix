@@ -15,7 +15,7 @@ buildNpmPackage rec {
     hash = "sha256-/ZR+YeGAKHMfsLFPBzhMje9btsnoMotx8DB/YPztopw=";
   };
 
-  npmDepsHash = "sha256-yDH1epZ3wVRFcLgbZ511055wXP/4EQhCL3TcAWOyyfs=";
+  npmDepsHash = "sha256-xtJnUczTeJNhA6KQh8K3lefGSTklg502BSneJ9H4ImQ=";
 
   postPatch = ''
     cat > package-lock.json <<'EOF'
