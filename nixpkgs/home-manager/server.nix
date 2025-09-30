@@ -37,6 +37,15 @@
 
     # Documentation
     tealdeer
+
+    # Development tools
+    claude-code
+    python3
+    nodejs
+
+    # Media utilities
+    yt-dlp
+    ffmpeg
   ];
 
   # Enable direnv for project-specific environments
