@@ -18,7 +18,35 @@ buildNpmPackage rec {
   npmDepsHash = "sha256-yDH1epZ3wVRFcLgbZ511055wXP/4EQhCL3TcAWOyyfs=";
 
   postPatch = ''
-    cp ${./package-lock.json} package-lock.json
+    cat > package-lock.json <<'EOF'
+${builtins.toJSON {
+  name = "ccusage";
+  lockfileVersion = 3;
+  requires = true;
+  packages = {
+    "" = {
+      dependencies = {
+        ccusage = "^16.2.2";
+      };
+    };
+    "node_modules/ccusage" = {
+      version = "16.2.2";
+      resolved = "https://registry.npmjs.org/ccusage/-/ccusage-16.2.2.tgz";
+      integrity = "sha512-ZPtS3KTBG6aUSyCcHoaqnT+ChfGEUKBaROpRCkm0j2GOLuq2ZgPJ9Up+oWfj1Szsd6M57CGG+OmGP1O71nvCYA==";
+      license = "MIT";
+      bin = {
+        ccusage = "dist/index.js";
+      };
+      engines = {
+        node = ">=20.19.4";
+      };
+      funding = {
+        url = "https://github.com/ryoppippi/ccusage?sponsor=1";
+      };
+    };
+  };
+}}
+EOF
   '';
 
   dontNpmBuild = true;

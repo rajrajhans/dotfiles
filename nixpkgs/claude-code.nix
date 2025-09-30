@@ -18,7 +18,43 @@ buildNpmPackage rec {
   npmDepsHash = "sha256-D+T/v/J9J+eK88eIv216RfxEOCxPg2OvMEs43nfR0yw=";
 
   postPatch = ''
-    cp ${./claude-code-package-lock.json} package-lock.json
+    cat > package-lock.json <<'EOF'
+${builtins.toJSON {
+  name = "claude-code-npm";
+  version = "1.0.0";
+  lockfileVersion = 3;
+  requires = true;
+  packages = {
+    "" = {
+      name = "claude-code-npm";
+      version = "1.0.0";
+      license = "ISC";
+      dependencies = {
+        "@anthropic-ai/claude-code" = "2.0.1";
+      };
+    };
+    "node_modules/@anthropic-ai/claude-code" = {
+      version = "2.0.1";
+      resolved = "https://registry.npmjs.org/@anthropic-ai/claude-code/-/claude-code-2.0.1.tgz";
+      integrity = "sha512-LUbDPFa0lY74MBU4hvmYVntt6hVZy6UUZFN0iB4Eno8=";
+      bin = {
+        claude = "cli.js";
+      };
+      engines = {
+        node = ">=18.0.0";
+      };
+      optionalDependencies = {
+        "@img/sharp-darwin-arm64" = "^0.33.5";
+        "@img/sharp-darwin-x64" = "^0.33.5";
+        "@img/sharp-linux-arm" = "^0.33.5";
+        "@img/sharp-linux-arm64" = "^0.33.5";
+        "@img/sharp-linux-x64" = "^0.33.5";
+        "@img/sharp-win32-x64" = "^0.33.5";
+      };
+    };
+  };
+}}
+EOF
   '';
 
   dontNpmBuild = true;
