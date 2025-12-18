@@ -6,16 +6,16 @@
 
 buildNpmPackage rec {
   pname = "claude-code";
-  version = "2.0.47";
+  version = "2.0.72";
 
   nodejs = nodejs_22;
 
   src = fetchzip {
     url = "https://registry.npmjs.org/@anthropic-ai/${pname}/-/${pname}-${version}.tgz";
-    hash = "sha256-do9NH1L8ME1+ZbXB7XgmQMzHLmuBssPjDo/aTYV+Nzo=";
+    hash = "sha256-xa9etUBw1UIoHc44ypQ83PQKVNC0KS/DGwnZrvW9ero=";
   };
 
-  npmDepsHash = "sha256-RL3oAiZrntK57qWdY33xQO/Ynb6pRM41qjE8WDuHElk=";
+  npmDepsHash = "sha256-vcVnprCBfKj4+KSU3zgNCgdaaA4TDPCSgrYYNY+53bc=";
 
   postPatch = ''
     cat > package-lock.json <<'EOF'
@@ -30,13 +30,13 @@ ${builtins.toJSON {
           version = "1.0.0";
           license = "ISC";
           dependencies = {
-        "@anthropic-ai/claude-code" = "2.0.47";
+        "@anthropic-ai/claude-code" = "2.0.72";
           };
         };
         "node_modules/@anthropic-ai/claude-code" = {
-      version = "2.0.47";
-      resolved = "https://registry.npmjs.org/@anthropic-ai/claude-code/-/claude-code-2.0.47.tgz";
-      integrity = "sha512-mF9J8zZkgzlMXHDtHnQciMjswrP+GxvNLTm4IVKs8cIbbHZqEJonIwHDkh3QeZd2bDso+1/DO41RcVm6ghsmNA==";
+      version = "2.0.72";
+      resolved = "https://registry.npmjs.org/@anthropic-ai/claude-code/-/claude-code-2.0.72.tgz";
+      integrity = "sha512-ysJYyeyqePMUUL2/6j6yOpowk+9qhL7AaW9Betmt4K+MrK42tvNdOXLUlvxdMs05CCbvuCRqzVll4SNVQealmg==";
       bin = {
         claude = "cli.js";
       };
