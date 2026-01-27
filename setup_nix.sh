@@ -29,36 +29,30 @@ function setup-prerequisites() {
     fi
 }
 
-function update-server-config() {
+function impure-flag() {
     local profile=$(nix-profile)
-
-    # Only update server config if we're on Linux and user/home are placeholders
-    if [[ "$profile" == "server" && "$(uname)" == "Linux" ]]; then
-        local current_user="$USER"
-        local current_home="$HOME"
-
-        # Update the server.nix with current user info
-        sed -i "s|home.username = \"user\"|home.username = \"$current_user\"|" nixpkgs/home-manager/server.nix
-        sed -i "s|home.homeDirectory = \"/home/user\"|home.homeDirectory = \"$current_home\"|" nixpkgs/home-manager/server.nix
+    # Server profile needs --impure to read $USER/$HOME env vars
+    if [[ "$profile" == "server" ]]; then
+        echo "--impure"
     fi
 }
 
 function nix-build() {
     local profile=$(nix-profile)
     echo "Building configuration for profile: $profile"
-    nix build --no-link .#homeConfigurations.$profile.activationPackage --extra-experimental-features 'nix-command flakes'
+    nix build --no-link .#homeConfigurations.$profile.activationPackage --extra-experimental-features 'nix-command flakes' $(impure-flag)
 }
 
 function nix-activate() {
     local profile=$(nix-profile)
     echo "Activating configuration..."
-    "$(nix path-info .#homeConfigurations.$profile.activationPackage --extra-experimental-features 'nix-command flakes')"/activate
+    "$(nix path-info .#homeConfigurations.$profile.activationPackage --extra-experimental-features 'nix-command flakes' $(impure-flag))"/activate
 }
 
 function nix-switch() {
     local profile=$(nix-profile)
     echo "Switching to configuration..."
-    home-manager switch --flake ".#$profile"
+    home-manager switch --flake ".#$profile" $(impure-flag)
 }
 
 function nix-update() {
@@ -69,7 +63,6 @@ function nix-update() {
 echo "Starting Nix setup for $(nix-profile) profile..."
 
 setup-prerequisites
-update-server-config
 nix-build
 nix-activate
 nix-switch
