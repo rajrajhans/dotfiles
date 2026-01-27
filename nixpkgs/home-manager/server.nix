@@ -47,7 +47,6 @@ in
     tealdeer
 
     # Development tools
-    claude-code
     python3
     nodejs
 
