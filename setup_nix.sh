@@ -52,7 +52,7 @@ function nix-activate() {
 function nix-switch() {
     local profile=$(nix-profile)
     echo "Switching to configuration..."
-    home-manager switch --flake ".#$profile" $(impure-flag)
+    home-manager switch --flake ".#$profile" -b backup $(impure-flag)
 }
 
 function nix-update() {
