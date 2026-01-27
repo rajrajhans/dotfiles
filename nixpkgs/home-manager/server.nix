@@ -25,6 +25,8 @@
 
     # Git and version control
     git
+    lazygit
+    gh
 
     # File operations
     rsync
@@ -34,6 +36,7 @@
     age
     duf
     neofetch
+    just
 
     # Documentation
     tealdeer
