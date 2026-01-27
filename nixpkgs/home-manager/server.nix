@@ -69,7 +69,7 @@ in
       enable = true;
       options = {
         syntax-theme = "Nord";
-        "24-bit-color" = "always";
+        true-color = "always";
         file-style = "#84a0c6";
         hunk-header-style = "#84a0c6";
         plus-style = "syntax #45493e";
