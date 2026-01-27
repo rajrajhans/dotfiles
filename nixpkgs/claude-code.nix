@@ -1,81 +1,48 @@
-{ lib
-, buildNpmPackage
-, fetchzip
-, nodejs_22
-}:
+{ lib, stdenv, fetchurl, makeWrapper }:
 
-buildNpmPackage rec {
+let
+  versionData = builtins.fromJSON (builtins.readFile ./claude-code-hashes.json);
+  inherit (versionData) version hashes;
+
+  platformMap = {
+    aarch64-darwin = "darwin-arm64";
+    x86_64-linux = "linux-x64";
+  };
+
+  platform = stdenv.hostPlatform.system;
+  platformSuffix = platformMap.${platform} or (throw "Unsupported system: ${platform}");
+in
+stdenv.mkDerivation {
   pname = "claude-code";
-  version = "2.1.9";
+  inherit version;
 
-  nodejs = nodejs_22;
-
-  src = fetchzip {
-    url = "https://registry.npmjs.org/@anthropic-ai/${pname}/-/${pname}-${version}.tgz";
-    hash = "sha256-TU+54QVtcFaUErv8YB0NxmgP+0eUqa2JEjAVRHKPICs=";
+  src = fetchurl {
+    url = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/${version}/${platformSuffix}/claude";
+    hash = hashes.${platform};
   };
 
-  npmDepsHash = "sha256-BMmnJaFQNb5lygk9fZKfO595THK4gVbu7WzoG0vJBEY=";
-
-  postPatch = ''
-    cat > package-lock.json <<'EOF'
-${builtins.toJSON {
-      name = "claude-code-npm";
-      version = "1.0.0";
-      lockfileVersion = 3;
-      requires = true;
-      packages = {
-        "" = {
-          name = "claude-code-npm";
-          version = "1.0.0";
-          license = "ISC";
-          dependencies = {
-        "@anthropic-ai/claude-code" = "2.1.9";
-          };
-        };
-        "node_modules/@anthropic-ai/claude-code" = {
-      version = "2.1.9";
-      resolved = "https://registry.npmjs.org/@anthropic-ai/claude-code/-/claude-code-2.1.9.tgz";
-      integrity = "sha512-ViGb9RoAQ8l+X5e0egsH64xGi7zHvlNgwx/Lwxez24XgfJSYa+cyjpVX7cSDlBfMb1uXXTDNbpo2RicmvP/BKg==";
-      bin = {
-        claude = "cli.js";
-      };
-      engines = {
-        node = ">=18.0.0";
-      };
-      optionalDependencies = {
-        "@img/sharp-darwin-arm64" = "^0.33.5";
-        "@img/sharp-darwin-x64" = "^0.33.5";
-        "@img/sharp-linux-arm" = "^0.33.5";
-        "@img/sharp-linux-arm64" = "^0.33.5";
-        "@img/sharp-linux-x64" = "^0.33.5";
-        "@img/sharp-win32-x64" = "^0.33.5";
-      };
-    };
-  };
-}}
-EOF
-  '';
-
-  dontNpmBuild = true;
+  dontUnpack = true;
+  nativeBuildInputs = [ makeWrapper ];
+  dontStrip = true;
 
   installPhase = ''
     runHook preInstall
-
-    mkdir -p $out/bin $out/lib/node_modules/@anthropic-ai/${pname}
-    cp -r . $out/lib/node_modules/@anthropic-ai/${pname}/
-
-    ln -s $out/lib/node_modules/@anthropic-ai/${pname}/cli.js $out/bin/claude
-    chmod +x $out/bin/claude
-
+    install -Dm755 $src $out/bin/claude
     runHook postInstall
   '';
 
+  postFixup = ''
+    wrapProgram $out/bin/claude \
+      --set DISABLE_AUTOUPDATER 1
+  '';
+
   meta = {
-    description = "Use Claude, Anthropic's AI assistant, right from your terminal. Claude can understand your codebase, edit files, run terminal commands, and handle entire workflows for you.";
+    description = "Agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster";
     homepage = "https://github.com/anthropics/claude-code";
+    changelog = "https://github.com/anthropics/claude-code/releases";
     license = lib.licenses.unfree;
+    sourceProvenance = with lib.sourceTypes; [ binaryNativeCode ];
     mainProgram = "claude";
-    maintainers = [ ];
+    platforms = [ "aarch64-darwin" "x86_64-linux" ];
   };
 }
