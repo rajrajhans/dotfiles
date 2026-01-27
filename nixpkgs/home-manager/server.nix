@@ -63,24 +63,26 @@ in
   programs.direnv.nix-direnv.enable = true;
 
   # Git configuration
+  programs.delta = {
+    enable = true;
+    enableGitIntegration = true;
+    options = {
+      syntax-theme = "Nord";
+      true-color = "always";
+      file-style = "#84a0c6";
+      hunk-header-style = "#84a0c6";
+      plus-style = "syntax #45493e";
+      plus-emph-style = "syntax #2C3025";
+      minus-style = "normal #53343b";
+      minus-emph-style = "normal #200108";
+    };
+  };
+
   programs.git = {
     enable = true;
-    userName = "Raj Rajhans";
-    userEmail = "me@rajrajhans.com";
-    delta = {
-      enable = true;
-      options = {
-        syntax-theme = "Nord";
-        true-color = "always";
-        file-style = "#84a0c6";
-        hunk-header-style = "#84a0c6";
-        plus-style = "syntax #45493e";
-        plus-emph-style = "syntax #2C3025";
-        minus-style = "normal #53343b";
-        minus-emph-style = "normal #200108";
-      };
-    };
-    extraConfig = {
+    settings = {
+      user.name = "Raj Rajhans";
+      user.email = "me@rajrajhans.com";
       core.editor = "vim";
       pull.rebase = false;
       rebase.autoStash = true;
