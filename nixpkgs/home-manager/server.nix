@@ -65,10 +65,21 @@ in
     enable = true;
     userName = "Raj Rajhans";
     userEmail = "me@rajrajhans.com";
-    delta.enable = true;
+    delta = {
+      enable = true;
+      options = {
+        syntax-theme = "Nord";
+        "24-bit-color" = "always";
+        file-style = "#84a0c6";
+        hunk-header-style = "#84a0c6";
+        plus-style = "syntax #45493e";
+        plus-emph-style = "syntax #2C3025";
+        minus-style = "normal #53343b";
+        minus-emph-style = "normal #200108";
+      };
+    };
     extraConfig = {
       core.editor = "vim";
-      core.pager = ''delta --syntax-theme="Nord" --24-bit-color="always" --file-style="#84a0c6" --hunk-header-style="#84a0c6" --plus-style="syntax #45493e" --plus-emph-style="syntax #2C3025" --minus-style="normal #53343b" --minus-emph-style="normal #200108"'';
       pull.rebase = false;
       rebase.autoStash = true;
       init.defaultBranch = "main";
