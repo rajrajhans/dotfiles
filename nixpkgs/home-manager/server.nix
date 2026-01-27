@@ -169,6 +169,13 @@ in
     '';
   };
 
+  # tmux configuration
+  programs.tmux = {
+    enable = true;
+    terminal = "screen-256color";
+    mouse = true;
+  };
+
   # inputrc
   home.file.".inputrc".text = ''
     # Respect default shortcuts.
