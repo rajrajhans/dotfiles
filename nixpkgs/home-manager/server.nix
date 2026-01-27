@@ -49,11 +49,14 @@ in
     # Development tools
     python3
     nodejs
+    (pkgs.callPackage ../../claude-code.nix { })
 
     # Media utilities
     yt-dlp
     ffmpeg
   ];
+
+  home.file.".local/bin/claude".source = "${pkgs.callPackage ../../claude-code.nix { }}/bin/claude";
 
   # Enable direnv for project-specific environments
   programs.direnv.enable = true;

@@ -1,5 +1,7 @@
-{ config, pkgs, pkgsUnstable, ... }:
+{ config, pkgs, pkgsUnstable, lib, ... }:
 {
+
+  home.file.".local/bin/claude".source = "${pkgs.callPackage ../../claude-code.nix { }}/bin/claude";
 
   # https://github.com/nix-community/nix-direnv#via-home-manager
   programs.direnv.enable = true;
