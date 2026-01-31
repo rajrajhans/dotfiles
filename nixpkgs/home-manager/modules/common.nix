@@ -38,7 +38,6 @@
     nodejs_20
     nodePackages.eslint_d
     nodePackages.prettier
-    nodePackages.live-server
     nodePackages.tailwindcss
     nodePackages.ts-node
 
