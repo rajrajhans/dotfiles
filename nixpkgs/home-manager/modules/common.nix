@@ -39,7 +39,6 @@
     nodePackages.eslint_d
     nodePackages.prettier
     nodePackages.tailwindcss
-    nodePackages.ts-node
 
     rustc
     cargo
