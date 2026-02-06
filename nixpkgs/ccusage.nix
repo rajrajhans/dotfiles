@@ -6,16 +6,16 @@
 
 buildNpmPackage rec {
   pname = "ccusage";
-  version = "17.0.2";
+  version = "18.0.5";
 
   nodejs = nodejs_22;
 
   src = fetchzip {
     url = "https://registry.npmjs.org/${pname}/-/${pname}-${version}.tgz";
-    hash = "sha256-/ZR+YeGAKHMfsLFPBzhMje9btsnoMotx8DB/YPztopw=";
+    hash = "sha256-i4UyRU7EA0PLduABnPGbcD8I06ZjmjwXCC77vtFM638=";
   };
 
-  npmDepsHash = "sha256-xtJnUczTeJNhA6KQh8K3lefGSTklg502BSneJ9H4ImQ=";
+  npmDepsHash = "sha256-yejRRB3mJRoov8ntT9/Q8bL3ilZcnHE1y767E3V/4LY=";
 
   postPatch = ''
     cat > package-lock.json <<'EOF'
@@ -26,13 +26,13 @@ ${builtins.toJSON {
   packages = {
     "" = {
       dependencies = {
-        ccusage = "^16.2.2";
+        ccusage = "^${version}";
       };
     };
     "node_modules/ccusage" = {
-      version = "16.2.2";
-      resolved = "https://registry.npmjs.org/ccusage/-/ccusage-16.2.2.tgz";
-      integrity = "sha512-ZPtS3KTBG6aUSyCcHoaqnT+ChfGEUKBaROpRCkm0j2GOLuq2ZgPJ9Up+oWfj1Szsd6M57CGG+OmGP1O71nvCYA==";
+      version = version;
+      resolved = "https://registry.npmjs.org/ccusage/-/ccusage-${version}.tgz";
+      integrity = "sha512-bnZrVbGm5h7hIIOH3FZFaDxKgJLLHhWDWIv7/9M6/O373YM6RAwsG9hxZXA1ep+C2ISiNEX6MYVoXgkoSuFf9Q==";
       license = "MIT";
       bin = {
         ccusage = "dist/index.js";
