@@ -2,6 +2,14 @@
 {
 
   home.file.".local/bin/claude".source = "${pkgs.callPackage ../../claude-code.nix { }}/bin/claude";
+  home.file.".zshrc".source = ../../../shell/zshrc;
+  home.file.".wakatime.cfg".source = ../../../shell/wakatime.cfg;
+  home.file.".gitconfig".source = ../../../git/gitconfig;
+  home.file.".gitignore".source = ../../../git/gitignore;
+  home.file.".tmux.conf".source = ../../../shell/tmux.conf;
+  home.file.".iex.exs".source = ../../../config/iex.exs;
+
+  xdg.configFile."yazi/theme.toml".source = ../../../config/yazi/theme.toml;
 
   # https://github.com/nix-community/nix-direnv#via-home-manager
   programs.direnv.enable = true;
