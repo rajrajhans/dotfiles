@@ -155,9 +155,17 @@ in
       kcga = "kubectl get --all-namespaces";
       kcapply = "kubectl apply -f";
       ccc = "claude --dangerously-skip-permissions";
-      yz = "yazi";
     };
     initExtra = ''
+      # yazi wrapper: cd into browsed directory on quit
+      function y() {
+        local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+        command yazi "$@" --cwd-file="$tmp"
+        IFS= read -r -d '' cwd < "$tmp"
+        [ "$cwd" != "$PWD" ] && [ -d "$cwd" ] && builtin cd -- "$cwd"
+        rm -f -- "$tmp"
+      }
+
       # colored prompt
       PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\[\033[1;31m\]\$\[\033[0m\] '
 

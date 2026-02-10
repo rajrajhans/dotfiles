@@ -145,7 +145,13 @@ alias psbeam='ps aux | grep beam | grep "\-name" | awk '\''{for(i=1;i<=NF;i++) i
 alias code='cursor'
 alias llm='llm -t default'
 alias ccc='claude --dangerously-skip-permissions'
-alias yz='yazi'
+function y() {
+	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+	command yazi "$@" --cwd-file="$tmp"
+	IFS= read -r -d '' cwd < "$tmp"
+	[ "$cwd" != "$PWD" ] && [ -d "$cwd" ] && builtin cd -- "$cwd"
+	rm -f -- "$tmp"
+}
 
 # kubectl aliases
 alias kc='kubectl'
