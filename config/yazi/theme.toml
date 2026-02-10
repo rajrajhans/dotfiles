@@ -1,0 +1,24 @@
+[tabs]
+active   = { fg = "#1e1e2e", bg = "#a6e3a1", bold = true }
+inactive = { fg = "#a6e3a1", bg = "#585b70" }
+
+[mode]
+normal_main = { fg = "#1e1e2e", bg = "#a6e3a1", bold = true }
+normal_alt  = { fg = "#a6e3a1", bg = "#585b70" }
+select_main = { fg = "#1e1e2e", bg = "#f38ba8", bold = true }
+select_alt  = { fg = "#f38ba8", bg = "#585b70" }
+unset_main  = { fg = "#1e1e2e", bg = "#fab387", bold = true }
+unset_alt   = { fg = "#fab387", bg = "#585b70" }
+
+[status]
+overall      = {}
+sep_left     = { open = "", close = "" }
+sep_right    = { open = "", close = "" }
+perm_sep     = { fg = "#7f849c" }
+perm_type    = { fg = "#a6e3a1" }
+perm_read    = { fg = "#f9e2af" }
+perm_write   = { fg = "#f38ba8" }
+perm_exec    = { fg = "#89dceb" }
+progress_label  = { fg = "#cdd6f4", bold = true }
+progress_normal = { fg = "#a6e3a1", bg = "#313244" }
+progress_error  = { fg = "#f9e2af", bg = "#f38ba8" }

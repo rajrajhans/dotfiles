@@ -35,6 +35,7 @@ in
 
     # File operations
     rsync
+    yazi
 
     # System utilities
     direnv
@@ -57,6 +58,8 @@ in
   ];
 
   home.file.".local/bin/claude".source = "${pkgs.callPackage ../claude-code.nix { }}/bin/claude";
+
+  xdg.configFile."yazi/theme.toml".source = ../../config/yazi/theme.toml;
 
   # Enable direnv for project-specific environments
   programs.direnv.enable = true;
