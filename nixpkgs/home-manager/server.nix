@@ -155,6 +155,7 @@ in
       kcga = "kubectl get --all-namespaces";
       kcapply = "kubectl apply -f";
       ccc = "claude --dangerously-skip-permissions";
+      yz = "yazi";
     };
     initExtra = ''
       # colored prompt
