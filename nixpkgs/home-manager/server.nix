@@ -160,6 +160,7 @@ in
       kcga = "kubectl get --all-namespaces";
       kcapply = "kubectl apply -f";
       ccc = "claude --dangerously-skip-permissions";
+      c = "ccc";
     };
     initExtra = ''
       # PATH

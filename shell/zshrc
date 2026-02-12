@@ -145,6 +145,7 @@ alias psbeam='ps aux | grep beam | grep "\-name" | awk '\''{for(i=1;i<=NF;i++) i
 alias code='cursor'
 alias llm='llm -t default'
 alias ccc='claude --dangerously-skip-permissions'
+alias c='ccc'
 function y() {
 	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
 	command yazi "$@" --cwd-file="$tmp"
