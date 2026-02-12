@@ -135,9 +135,12 @@ in
       gpop = "git stash pop";
       gdeepclean = "git clean -fdx";
       ghpr = "gh pr view --web";
+      ghprc = "gh pr create";
+      ghprcf = "gh pr create -f";
       gresh = "git reset --hard";
       gupdate = "git checkout main && git pull origin main && git checkout - && git merge main";
       gsubupdate = "git submodule update --init --recursive";
+      gbranches = "git branch --sort=-committerdate";
       # general
       cls = "clear";
       grep = "grep --color=auto";
@@ -146,7 +149,9 @@ in
       ls = "ls -a --color=auto";
       ll = "ls -alF";
       la = "ls -A";
-      l = "ls -alF";
+      l = "ls -lhat";
+      cat = "bat";
+      top = "btm";
       realtimeutc = ''while true; do printf "%s\r" "$(date -u)"; done'';
       checkip = "curl ipinfo.io/ip";
       # kubectl
@@ -157,6 +162,9 @@ in
       ccc = "claude --dangerously-skip-permissions";
     };
     initExtra = ''
+      # PATH
+      export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+
       # yazi wrapper: cd into browsed directory on quit
       function y() {
         local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
@@ -166,8 +174,15 @@ in
         rm -f -- "$tmp"
       }
 
-      # colored prompt
-      PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\[\033[1;31m\]\$\[\033[0m\] '
+      # git prompt: show branch, dirty (*), staged (+), ahead/behind
+      source ${pkgs.git}/share/bash-completion/completions/git
+      source ${pkgs.git}/share/git/contrib/completion/git-prompt.sh
+      export GIT_PS1_SHOWDIRTYSTATE=1
+      export GIT_PS1_SHOWSTASHSTATE=1
+      export GIT_PS1_SHOWUNTRACKEDFILES=1
+      export GIT_PS1_SHOWUPSTREAM="auto"
+
+      PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\[\033[1;33m\]$(__git_ps1 " (%s)")\[\033[1;31m\]\$\[\033[0m\] '
 
       # gundo function
       gundo() {
@@ -177,6 +192,10 @@ in
       # source system bash completion if available
       [ -f /etc/profile.d/bash_completion.sh ] && source /etc/profile.d/bash_completion.sh
 
+      # fzf shell integration
+      eval "$(fzf --bash)"
+
+      eval "$(direnv hook bash)"
       eval "$(zoxide init bash)"
     '';
   };
