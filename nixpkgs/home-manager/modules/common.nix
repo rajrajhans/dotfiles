@@ -9,8 +9,6 @@
   home.file.".tmux.conf".source = ../../../shell/tmux.conf;
   home.file.".iex.exs".source = ../../../config/iex.exs;
 
-  xdg.configFile."yazi/theme.toml".source = ../../../config/yazi/theme.toml;
-
   # https://github.com/nix-community/nix-direnv#via-home-manager
   programs.direnv.enable = true;
   programs.direnv.nix-direnv.enable = true;
@@ -22,7 +20,6 @@
     zsh
     wget
     fzf
-    yazi
     glow
     rsync
     tmux

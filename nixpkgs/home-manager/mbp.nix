@@ -4,6 +4,7 @@
   imports = [
     ./modules/home-manager.nix
     ./modules/common.nix
+    ./modules/yazi.nix
   ];
 
   home.homeDirectory = "/Users/rajrajhans";

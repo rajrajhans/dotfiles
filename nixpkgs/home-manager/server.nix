@@ -9,6 +9,7 @@ in
 {
   imports = [
     ./modules/home-manager.nix
+    ./modules/yazi.nix
   ];
 
   home.username = username;
@@ -35,7 +36,6 @@ in
 
     # File operations
     rsync
-    yazi
 
     # System utilities
     direnv
@@ -58,8 +58,6 @@ in
   ];
 
   home.file.".local/bin/claude".source = "${pkgs.callPackage ../claude-code.nix { }}/bin/claude";
-
-  xdg.configFile."yazi/theme.toml".source = ../../config/yazi/theme.toml;
 
   # Enable direnv for project-specific environments
   programs.direnv.enable = true;
@@ -165,15 +163,6 @@ in
     initExtra = ''
       # PATH
       export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
-
-      # yazi wrapper: cd into browsed directory on quit
-      function y() {
-        local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
-        command yazi "$@" --cwd-file="$tmp"
-        IFS= read -r -d ''' cwd < "$tmp"
-        [ "$cwd" != "$PWD" ] && [ -d "$cwd" ] && builtin cd -- "$cwd"
-        rm -f -- "$tmp"
-      }
 
       # git prompt: show branch, dirty (*), staged (+), ahead/behind
       source ${pkgs.git}/share/bash-completion/completions/git
