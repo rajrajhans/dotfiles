@@ -155,6 +155,7 @@ in
       kcga = "kubectl get --all-namespaces";
       kcapply = "kubectl apply -f";
       ccc = "claude --dangerously-skip-permissions";
+      c = "ccc";
     };
     initExtra = ''
       # yazi wrapper: cd into browsed directory on quit
