@@ -5,6 +5,7 @@
     ./modules/home-manager.nix
     ./modules/common.nix
     ./modules/yazi.nix
+    ./modules/micro.nix
   ];
 
   home.homeDirectory = "/Users/rajrajhans";

@@ -10,6 +10,7 @@ in
   imports = [
     ./modules/home-manager.nix
     ./modules/yazi.nix
+    ./modules/micro.nix
   ];
 
   home.username = username;
@@ -84,7 +85,7 @@ in
     settings = {
       user.name = "Raj Rajhans";
       user.email = "me@rajrajhans.com";
-      core.editor = "vim";
+      core.editor = "micro";
       pull.rebase = false;
       rebase.autoStash = true;
       init.defaultBranch = "main";

@@ -33,6 +33,9 @@ export PATH=~/.npm-global/bin:$PATH
 # configure git to use the auto generated commit message
 export GIT_MERGE_AUTOEDIT=no
 
+export EDITOR=micro
+export VISUAL=micro
+
 export LS_COLORS="$(vivid generate molokai)"
 
 ###### ALIASES ######
