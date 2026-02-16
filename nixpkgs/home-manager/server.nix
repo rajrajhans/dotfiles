@@ -8,7 +8,6 @@ let
 in
 {
   imports = [
-    ./modules/home-manager.nix
     ./modules/yazi.nix
     ./modules/micro.nix
   ];
@@ -16,6 +15,8 @@ in
   home.username = username;
   home.homeDirectory = homeDirectory;
   home.stateVersion = "22.05";
+
+  programs.home-manager.enable = true;
 
   # Core server packages
   home.packages = with pkgs; [
