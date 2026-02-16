@@ -76,6 +76,7 @@
     llm
     vlc-bin
     syncthing-macos
+    (pkgs.callPackage ../../notunes.nix { })
     (pkgs.callPackage ../../ccusage.nix { })
     (pkgs.callPackage ../../claude-code.nix { })
     (pkgs.callPackage ../../codex.nix { })
