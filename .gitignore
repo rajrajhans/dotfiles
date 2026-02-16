@@ -1,3 +1,4 @@
 shell/private_*
 .DS_Store
 homelab/node.env
+.env.local

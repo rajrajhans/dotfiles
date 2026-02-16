@@ -4,6 +4,7 @@
   imports = [
     ./modules/yazi.nix
     ./modules/micro.nix
+    ./modules/wakapi.nix
   ];
 
   home.homeDirectory = "/Users/rajrajhans";
@@ -15,7 +16,6 @@
 
   home.file.".local/bin/claude".source = "${pkgs.callPackage ../claude-code.nix { }}/bin/claude";
   home.file.".zshrc".source = ../../shell/zshrc;
-  home.file.".wakatime.cfg".source = ../../shell/wakatime.cfg;
   home.file.".gitconfig".source = ../../git/gitconfig;
   home.file.".gitignore".source = ../../git/gitignore;
   home.file.".tmux.conf".source = ../../shell/tmux.conf;
