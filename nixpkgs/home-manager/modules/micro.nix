@@ -9,9 +9,16 @@
     VISUAL = "micro";
   };
 
+  home.file.".config/micro/bindings.json".text = builtins.toJSON {
+    "CtrlA" = "StartOfTextToggle";
+    "CtrlE" = "EndOfLine";
+    "CtrlShiftA" = "SelectToStartOfTextToggle";
+    "CtrlShiftE" = "SelectToEndOfLine";
+  };
+
   home.file.".config/micro/settings.json".text = builtins.toJSON {
     # Appearance
-    colorscheme = "gruvbox-tc";
+    colorscheme = "monokai";
     cursorline = true;
     diffgutter = true;
     ruler = true;
