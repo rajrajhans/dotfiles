@@ -25,6 +25,16 @@
   programs.direnv.enable = true;
   programs.direnv.nix-direnv.enable = true;
 
+  launchd.agents.syncthing = {
+    enable = true;
+    config = {
+      Label = "com.github.xor-gate.syncthing-macosx";
+      ProgramArguments = [ "${pkgs.syncthing-macos}/Applications/Syncthing.app/Contents/MacOS/Syncthing" ];
+      RunAtLoad = true;
+      KeepAlive = false;
+    };
+  };
+
   home.packages = with pkgs; [
     fd
     ripgrep
