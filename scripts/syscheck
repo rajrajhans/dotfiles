@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+set -o pipefail
+
+if ! command -v claude &>/dev/null; then
+  echo "error: claude not found in PATH" >&2
+  exit 1
+fi
+
+gather() {
+  echo "HOSTNAME: $(scutil --get ComputerName 2>/dev/null || hostname -s 2>/dev/null || hostname)"
+
+  if [[ "$(uname)" == "Darwin" ]]; then
+    echo "PLATFORM: macOS"
+    echo "CPU: $(sysctl -n hw.ncpu) cores, $(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo 'Apple Silicon')"
+    echo "UPTIME: $(uptime)"
+    echo "TOTAL_MEM_BYTES: $(sysctl -n hw.memsize)"
+    echo "--- VM_STAT ---"
+    vm_stat
+    echo "--- DISK ---"
+    df -h /
+    echo "--- TOP BY CPU (full cmdline) ---"
+    ps -eo pid,%cpu,%mem,rss,command | sort -k2 -rn | head -25
+    echo "--- TOP BY MEM (full cmdline) ---"
+    ps -eo pid,%cpu,%mem,rss,command | sort -k3 -rn | head -25
+  else
+    echo "PLATFORM: Linux"
+    echo "CPU: $(nproc 2>/dev/null || echo '?') cores, $(grep 'model name' /proc/cpuinfo 2>/dev/null | head -1 | cut -d: -f2 | xargs || echo 'Unknown')"
+    echo "UPTIME: $(uptime)"
+    echo "--- MEMORY ---"
+    free -h
+    echo "--- DISK ---"
+    df -h / --output=source,size,used,avail,pcent 2>/dev/null || df -h /
+    echo "--- TOP BY CPU (full cmdline) ---"
+    ps aux --sort=-%cpu | head -25
+    echo "--- TOP BY MEM (full cmdline) ---"
+    ps aux --sort=-%mem | head -25
+  fi
+}
+
+PROMPT='You are a terminal system dashboard. Given raw system metrics piped via stdin, output ONLY the dashboard below. No other text.
+
+PROCESS NAME RESOLUTION (CRITICAL — the whole point of this tool):
+Read every process FULL command line path to determine what it actually is. NEVER use generic runtime names.
+- "node /path/to/ccusage statusline --refresh 30" → "ccusage statusline"
+- "node /proj/node_modules/.bin/vite build --watch" → "vite watcher (proj)"
+- "beam.smp ... -progname erl" with a Phoenix path → "Elixir BEAM (app-name)"
+- "/Applications/Google Chrome Helper (Renderer).app/..." → "Chrome renderer"
+- "/Applications/Cursor.app/.../Cursor Helper (Plugin)... eslintServer.js" → "Cursor (eslint)"
+- "python manage.py runserver" → "Django (project)"
+- "/usr/sbin/UserEventAgent" → "UserEventAgent"
+Extract project name from the file path. Group related processes when there are many (e.g. 5 Chrome renderers → one line with combined totals).
+
+FORMAT (reproduce this structure exactly):
+
+<host> · <cpu model> (<N> cores) · <total RAM> · up <uptime friendly>
+────────────────────────────────────────────────────
+CPU  ██████░░░░  60%    load 5.3 / 4.2 / 4.7
+MEM  ████████░░  78%    25.1 / 32 GB
+DISK █████████░  92%    849 / 927 GB (78 GB free)
+
+Use 10 block chars: █ filled, ░ empty. Append ⚠ at end of line if: load > 70% of core count, MEM > 80%, DISK > 85%.
+
+TOP CPU                                TOP MEMORY
+──────────────────────────────         ──────────────────────────────
+ 118%  ccusage statusline               700 MB  ccusage statusline
+  35%  WindowServer                     691 MB  Docker VM
+  ...                                   ...
+
+Show top 5 each. Right-align numbers. Pad columns so they line up.
+
+⚠ ALERTS (include ONLY if something is actually concerning, otherwise omit entirely)
+  · <concise actionable one-liner>
+
+Nothing else. No intro, no sign-off, no explanations, no markdown formatting.'
+
+gather | claude -p "$PROMPT"

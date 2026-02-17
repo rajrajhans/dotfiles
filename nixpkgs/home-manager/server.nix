@@ -60,6 +60,7 @@ in
   ];
 
   home.file.".local/bin/claude".source = "${pkgs.callPackage ../claude-code.nix { }}/bin/claude";
+  home.file.".local/bin/syscheck" = { source = ../../scripts/syscheck; executable = true; };
 
   # Enable direnv for project-specific environments
   programs.direnv.enable = true;

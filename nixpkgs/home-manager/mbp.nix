@@ -15,6 +15,7 @@
   fonts.fontconfig.enable = true;
 
   home.file.".local/bin/claude".source = "${pkgs.callPackage ../claude-code.nix { }}/bin/claude";
+  home.file.".local/bin/syscheck" = { source = ../../scripts/syscheck; executable = true; };
   home.file.".zshrc".source = ../../shell/zshrc;
   home.file.".gitconfig".source = ../../git/gitconfig;
   home.file.".gitignore".source = ../../git/gitignore;
