@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -o pipefail
 
 if ! command -v claude &>/dev/null; then
   echo "error: claude not found in PATH" >&2
