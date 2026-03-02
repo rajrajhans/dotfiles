@@ -39,10 +39,17 @@ export VISUAL=micro
 export LS_COLORS="$(vivid generate molokai)"
 
 ###### ALIASES ######
+# ai
+alias code='cursor'
+alias llm='llm -t default'
+alias ccc='claude --dangerously-skip-permissions'
+alias c='ccc'
+
 # git related aliases
 alias g='git'
 alias lg='lazygit'
 alias gc='git commit -m'
+alias gcommit='c -p --model haiku  "look at the changes in the current git directory, and create a commit"'
 alias gcl='git clone'
 alias gs='git status'
 alias gsv='git status -v'
@@ -144,11 +151,7 @@ alias getuptimer="while true; do osascript -e 'display notification \"time for a
 ## prints pid of phoenix beam processes with their `-name`
 alias psbeam='ps aux | grep beam | grep "\-name" | awk '\''{for(i=1;i<=NF;i++) if($i=="-name") print $2, $(i+1)}'\'''
 
-# ai
-alias code='cursor'
-alias llm='llm -t default'
-alias ccc='claude --dangerously-skip-permissions'
-alias c='ccc'
+# yazi
 function y() {
 	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
 	command yazi "$@" --cwd-file="$tmp"
