@@ -33,7 +33,11 @@ stdenv.mkDerivation {
 
   postFixup = ''
     wrapProgram $out/bin/claude \
-      --set DISABLE_AUTOUPDATER 1
+      --set DISABLE_AUTOUPDATER 1 \
+      --set CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC 1 \
+      --set CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION false \
+      --set DISABLE_NON_ESSENTIAL_MODEL_CALLS 1 \
+      --set CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY 1
   '';
 
   meta = {
