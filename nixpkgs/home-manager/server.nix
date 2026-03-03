@@ -158,6 +158,12 @@ in
       # kubectl
       kc = "kubectl";
       kcg = "kubectl get";
+      kcgpo = "kubectl get pods";
+      kcpo = "kubectl port-forward";
+      kcd = "kubectl describe";
+      kcdel = "kubectl delete";
+      kcl = "kubectl logs";
+      kce = "kubectl exec";
       kcga = "kubectl get --all-namespaces";
       kcapply = "kubectl apply -f";
       ccc = "claude --dangerously-skip-permissions";
