@@ -1,0 +1,22 @@
+# duti config - default app associations
+# format: bundle_id    extension    role
+
+# Media files -> VLC
+org.videolan.vlc    .mp3    all
+org.videolan.vlc    .mp4    all
+org.videolan.vlc    .m4a    all
+org.videolan.vlc    .m4b    all
+org.videolan.vlc    .flac   all
+org.videolan.vlc    .wav    all
+org.videolan.vlc    .ogg    all
+org.videolan.vlc    .mkv    all
+org.videolan.vlc    .avi    all
+org.videolan.vlc    .mov    all
+org.videolan.vlc    .aac    all
+
+# Code files -> Cursor
+com.todesktop.230313mzl4w4u92    .ts     all
+com.todesktop.230313mzl4w4u92    .tsx    all
+com.todesktop.230313mzl4w4u92    .ex     all
+com.todesktop.230313mzl4w4u92    .rs     all
+com.todesktop.230313mzl4w4u92    .py     all

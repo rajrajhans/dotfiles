@@ -21,6 +21,11 @@
   home.file.".gitignore".source = ../../git/gitignore;
   home.file.".tmux.conf".source = ../../shell/tmux.conf;
   home.file.".iex.exs".source = ../../config/iex.exs;
+  home.file.".duti".source = ../../config/duti;
+
+  home.activation.duti = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    ${pkgs.duti}/bin/duti "$HOME/.duti"
+  '';
 
   # https://github.com/nix-community/nix-direnv#via-home-manager
   programs.direnv.enable = true;
