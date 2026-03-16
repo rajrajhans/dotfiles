@@ -92,6 +92,7 @@
     imagemagick
     age
     just
+    duti
 
     kubectx
 
