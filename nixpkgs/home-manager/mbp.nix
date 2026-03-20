@@ -31,6 +31,16 @@
   programs.direnv.enable = true;
   programs.direnv.nix-direnv.enable = true;
 
+  launchd.agents.noTunes = {
+    enable = true;
+    config = {
+      Label = "com.github.tombonez.noTunes";
+      ProgramArguments = [ "${pkgs.callPackage ../notunes.nix { }}/Applications/noTunes.app/Contents/MacOS/noTunes" ];
+      RunAtLoad = true;
+      KeepAlive = false;
+    };
+  };
+
   launchd.agents.syncthing = {
     enable = true;
     config = {
