@@ -64,7 +64,7 @@
     bottom
     bat
     jq
-    neofetch
+    fastfetch
     tealdeer
     ffmpeg_6-full
     gifsicle

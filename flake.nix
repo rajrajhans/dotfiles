@@ -17,7 +17,17 @@
   outputs = inputs @ { self, nixpkgs, home-manager, nixpkgsUnstable, darwin, ... }: {
     homeConfigurations = {
       mbp = home-manager.lib.homeManagerConfiguration {
-        pkgs = import nixpkgs { system = "aarch64-darwin"; config.allowUnfree = true; };
+        pkgs = import nixpkgs {
+          system = "aarch64-darwin";
+          config.allowUnfree = true;
+          overlays = [
+            (final: prev: {
+              direnv = prev.direnv.overrideAttrs (old: {
+                env = (old.env or {}) // { CGO_ENABLED = "1"; };
+              });
+            })
+          ];
+        };
         modules = [ ./nixpkgs/home-manager/mbp.nix ];
         extraSpecialArgs = { pkgsUnstable = inputs.nixpkgsUnstable.legacyPackages.aarch64-darwin; };
       };

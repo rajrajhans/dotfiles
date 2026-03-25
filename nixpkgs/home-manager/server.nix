@@ -43,7 +43,7 @@ in
     direnv
     age
     duf
-    neofetch
+    fastfetch
     just
 
     # Documentation
