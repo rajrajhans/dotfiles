@@ -44,6 +44,7 @@ alias code='cursor'
 alias llm='llm -t default'
 alias ccc='claude --dangerously-skip-permissions'
 alias c='ccc'
+alias cr='c -r'
 
 # git related aliases
 alias g='git'
