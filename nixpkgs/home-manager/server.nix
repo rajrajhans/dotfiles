@@ -170,6 +170,7 @@ in
       ccc = "claude --dangerously-skip-permissions";
       c = "ccc";
       codex = "codex --dangerously-bypass-approvals-and-sandbox";
+      cx = "codex";
     };
     initExtra = ''
       # PATH

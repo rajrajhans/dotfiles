@@ -46,6 +46,7 @@ alias ccc='claude --dangerously-skip-permissions'
 alias c='ccc'
 alias cr='c -r'
 alias codex='codex --dangerously-bypass-approvals-and-sandbox'
+alias cx='codex'
 
 # git related aliases
 alias g='git'
