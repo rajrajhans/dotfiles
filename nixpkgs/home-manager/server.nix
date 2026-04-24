@@ -169,6 +169,7 @@ in
       kcapply = "kubectl apply -f";
       ccc = "claude --dangerously-skip-permissions";
       c = "ccc";
+      codex = "codex --dangerously-bypass-approvals-and-sandbox";
     };
     initExtra = ''
       # PATH
