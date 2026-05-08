@@ -6,18 +6,18 @@
 }:
 
 let
-  version = "0.128.0";
+  version = "0.129.0";
 
   platformMap = {
     aarch64-darwin = {
       npmPlatform = "darwin-arm64";
       targetTriple = "aarch64-apple-darwin";
-      hash = "sha256-sx7VNdfoK8djd84D+Ikp+QwyQIf/Fcij8kdrJL38/C4=";
+      hash = "sha256-H4Z4ZO4XC8zlAL4xAdW4uUZeObQSRHYFwl2WiU43x3A=";
     };
     x86_64-linux = {
       npmPlatform = "linux-x64";
       targetTriple = "x86_64-unknown-linux-musl";
-      hash = "sha256-VgkvSeUcFh/ASMJBVFb8VZMLMtfaDiCVVNpliKZQFY0=";
+      hash = "sha256-Wu+55AZ1zIVBWlHVqh0jeF6TPPA5QjQnBkvjZOuLWKI=";
     };
   };
 
@@ -35,7 +35,7 @@ stdenv.mkDerivation {
 
   src = fetchzip {
     url = "https://registry.npmjs.org/@openai/codex/-/codex-${version}.tgz";
-    hash = "sha256-sHRjjd9uHUvKzgUKK1wpQw+9KpEJ0Pg4CP7aqsUP8sE=";
+    hash = "sha256-osX2naPGnpVNKDnA2Oak93BSGp4UpHBlv2EQxoNLZjw=";
   };
 
   nativeBuildInputs = [ makeWrapper ];
