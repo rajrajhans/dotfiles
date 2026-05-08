@@ -119,6 +119,7 @@
     (pkgs.callPackage ../ccusage.nix { })
     (pkgs.callPackage ../claude-code.nix { })
     (pkgs.callPackage ../codex.nix { })
+    (pkgs.callPackage ../hunk.nix { })
   ] ++ lib.optionals stdenv.isDarwin [
     coreutils
   ] ++ lib.optionals stdenv.isLinux [
