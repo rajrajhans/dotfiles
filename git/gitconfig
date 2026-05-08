@@ -5,6 +5,10 @@ pager = delta --syntax-theme="Nord" --24-bit-color="always" --file-style="#84a0c
 email = me@rajrajhans.com
 name = Raj Rajhans
 
+[pager]
+diff = diffnav
+show = diffnav
+
 [pull]
 rebase = false
 
