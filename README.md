@@ -10,7 +10,7 @@ Three layers, each managing a different scope:
 |---|---|---|---|
 | System (macOS only) | nix-darwin | `/etc`, launchd, system defaults, Homebrew | `nixpkgs/darwin/configuration.nix` |
 | User (cross-platform) | home-manager | `$HOME`, user packages, dotfiles, user launchd agents | `nixpkgs/home-manager/mbp.nix` (macOS), `server.nix` (Linux) |
-| Secrets (out-of-repo) | manual / Syncthing | anything matching `shell/private_*` (gitignored) | n/a |
+| Secrets (out-of-repo) | manual / Syncthing | anything matching `config/shell/private_*` (gitignored) | n/a |
 
 nix-darwin is macOS-only — on Linux servers the `server` profile uses home-manager standalone (no darwin layer).
 

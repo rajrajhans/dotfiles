@@ -151,7 +151,7 @@ klogs() {
 	kubectl logs -f -l app=$1 -n $1 --max-log-requests 200
 }
 
-for file in $HOME/dotfiles/shell/{private_shell_aliases,private_shell_functions}; do
+for file in $HOME/dotfiles/config/shell/{private_shell_aliases,private_shell_functions}; do
 	[ -r "$file" ] && [ -f "$file" ] && source "$file"
 done
 

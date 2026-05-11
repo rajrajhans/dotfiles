@@ -9,4 +9,4 @@ Nix is **Determinate Nix**; nix-darwin defers to it (`nix.enable = false`).
 
 Apply everything: `./setup_nix.sh` (picks profile from `uname`).
 
-Secrets matching `shell/private_*` are gitignored — not in Nix.
+Secrets matching `config/shell/private_*` are gitignored — not in Nix.

@@ -17,10 +17,10 @@
   home.file.".local/bin/claude".source = "${pkgs.callPackage ../claude-code.nix { }}/bin/claude";
   home.file.".local/bin/statusline.sh".source = "${pkgs.callPackage ../statusline.nix { }}/bin/statusline.sh";
   home.file.".local/bin/syscheck" = { source = ../../scripts/syscheck; executable = true; };
-  home.file.".zshrc".source = ../../shell/zshrc;
-  home.file.".gitconfig".source = ../../git/gitconfig;
-  home.file.".gitignore".source = ../../git/gitignore;
-  home.file.".tmux.conf".source = ../../shell/tmux.conf;
+  home.file.".zshrc".source = ../../config/shell/zshrc;
+  home.file.".gitconfig".source = ../../config/git/gitconfig;
+  home.file.".gitignore".source = ../../config/git/gitignore;
+  home.file.".tmux.conf".source = ../../config/shell/tmux.conf;
   home.file.".iex.exs".source = ../../config/iex.exs;
   home.file.".duti".source = ../../config/duti;
 
@@ -28,7 +28,7 @@
   # iTerm2: Preferences → General → "Load preferences from a custom folder",
   # pointed at ~/.config/iterm2.
   home.file.".config/iterm2/com.googlecode.iterm2.plist".source =
-    ../../iterm2/com.googlecode.iterm2.plist;
+    ../../config/iterm2/com.googlecode.iterm2.plist;
 
   home.activation.duti = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     ${pkgs.duti}/bin/duti "$HOME/.duti"
