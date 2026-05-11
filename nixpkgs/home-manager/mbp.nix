@@ -30,7 +30,7 @@
   home.file.".config/iterm2/com.googlecode.iterm2.plist".source =
     ../../config/iterm2/com.googlecode.iterm2.plist;
 
-  home.activation.duti = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+  home.activation.duti = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
     ${pkgs.duti}/bin/duti "$HOME/.duti"
   '';
 
