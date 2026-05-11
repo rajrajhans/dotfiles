@@ -24,11 +24,9 @@
   home.file.".iex.exs".source = ../../config/iex.exs;
   home.file.".duti".source = ../../config/duti;
 
-  # iTerm2 — symlink the dynamic profile (auto-loaded) and the prefs plist.
-  # The plist needs iTerm2 to be configured to "Load preferences from a
-  # custom folder", pointed at ~/.config/iterm2. One-time UI step.
-  home.file."Library/Application Support/iTerm2/DynamicProfiles/profile.json".source =
-    ../../iterm2/profile.json;
+  # iTerm2 — manage the prefs plist. Requires a one-time UI toggle in
+  # iTerm2: Preferences → General → "Load preferences from a custom folder",
+  # pointed at ~/.config/iterm2.
   home.file.".config/iterm2/com.googlecode.iterm2.plist".source =
     ../../iterm2/com.googlecode.iterm2.plist;
 
