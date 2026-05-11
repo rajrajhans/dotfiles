@@ -59,6 +59,21 @@ function nix-update() {
     nix flake update --extra-experimental-features 'nix-command flakes'
 }
 
+function darwin-switch() {
+    if [[ "$(uname)" != "Darwin" ]]; then
+        return 0
+    fi
+    local profile=$(nix-profile)
+    echo "Switching darwin system configuration for profile: $profile..."
+    if command -v darwin-rebuild &>/dev/null; then
+        sudo darwin-rebuild switch --flake ".#$profile"
+    else
+        # First-time bootstrap: darwin-rebuild isn't on PATH yet.
+        nix build ".#darwinConfigurations.$profile.system" --extra-experimental-features 'nix-command flakes'
+        sudo ./result/sw/bin/darwin-rebuild switch --flake ".#$profile"
+    fi
+}
+
 # Main execution
 echo "Starting Nix setup for $(nix-profile) profile..."
 
@@ -66,5 +81,6 @@ setup-prerequisites
 nix-build
 nix-activate
 nix-switch
+darwin-switch
 
 echo "Setup complete!"
