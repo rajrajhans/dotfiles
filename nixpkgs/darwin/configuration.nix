@@ -33,4 +33,54 @@
 
   # Add ability to used TouchID for sudo authentication
   security.pam.enableSudoTouchIdAuth = true;
+
+  # Homebrew (managed via nix-homebrew). GUI apps and a couple of CLIs that
+  # aren't in nixpkgs or that we specifically want from brew.
+  homebrew = {
+    enable = true;
+    onActivation = {
+      autoUpdate = true;
+      upgrade = true;
+      # "none" leaves manually-installed brews alone. Switch to "uninstall"
+      # or "zap" later if you want strict declarative management.
+      cleanup = "none";
+    };
+
+    taps = [
+      "cloudflare/cloudflare"
+    ];
+
+    brews = [
+      "cloudflared"
+    ];
+
+    casks = [
+      # browsers
+      "google-chrome"
+      "firefox"
+
+      # dev tools
+      "iterm2"
+      "visual-studio-code"
+      "sublime-text"
+      "docker"
+      "dbeaver-community"
+      "insomnia"
+      "pomerium-desktop"
+
+      # utility tools
+      "bitwarden"
+      "rectangle"
+      "stats"
+      "cloudflare-warp"
+      "obsidian"
+      "notion"
+      "shottr"
+      "transmission"
+      "itsycal"
+      "raycast"
+
+      "xbar"
+    ];
+  };
 }

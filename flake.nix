@@ -12,9 +12,10 @@
       url = "github:lnl7/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nix-homebrew.url = "github:zhaofengli/nix-homebrew";
   };
 
-  outputs = inputs @ { self, nixpkgs, home-manager, nixpkgsUnstable, darwin, ... }: {
+  outputs = inputs @ { self, nixpkgs, home-manager, nixpkgsUnstable, darwin, nix-homebrew, ... }: {
     homeConfigurations = {
       mbp = home-manager.lib.homeManagerConfiguration {
         pkgs = import nixpkgs {
@@ -46,6 +47,15 @@
         system = "aarch64-darwin";
         modules = [
           ./nixpkgs/darwin/configuration.nix
+          nix-homebrew.darwinModules.nix-homebrew
+          {
+            nix-homebrew = {
+              enable = true;
+              enableRosetta = true;
+              user = "rajrajhans";
+              autoMigrate = true;
+            };
+          }
         ];
         inputs = { inherit darwin nixpkgs; };
       };
