@@ -21,12 +21,6 @@ function setup-prerequisites() {
 
     # Enable experimental features
     export NIX_CONFIG="experimental-features = nix-command flakes"
-
-    # Check if home-manager is installed
-    if ! command -v home-manager &> /dev/null; then
-        echo "Installing home-manager..."
-        nix profile install nixpkgs#home-manager --extra-experimental-features 'nix-command flakes'
-    fi
 }
 
 function impure-flag() {
@@ -52,7 +46,15 @@ function nix-activate() {
 function nix-switch() {
     local profile=$(nix-profile)
     echo "Switching to configuration..."
-    home-manager switch --flake ".#$profile" -b backup $(impure-flag)
+    if command -v home-manager &>/dev/null; then
+        home-manager switch --flake ".#$profile" -b backup $(impure-flag)
+    else
+        # First-time bootstrap: home-manager isn't on PATH yet. Run it
+        # ephemerally via `nix run`; the switch itself installs home-manager
+        # into the profile for subsequent invocations.
+        nix run nixpkgs#home-manager --extra-experimental-features 'nix-command flakes' -- \
+            switch --flake ".#$profile" -b backup $(impure-flag)
+    fi
 }
 
 function nix-update() {
