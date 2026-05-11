@@ -61,7 +61,7 @@
 
       # dev tools
       "iterm2"
-      "visual-studio-code"
+      "cursor"
       "sublime-text"
       "docker"
       "dbeaver-community"
