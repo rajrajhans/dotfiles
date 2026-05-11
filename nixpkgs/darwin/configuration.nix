@@ -65,7 +65,6 @@
       "sublime-text"
       "docker"
       "dbeaver-community"
-      "insomnia"
 
       # utility tools
       "bitwarden"
