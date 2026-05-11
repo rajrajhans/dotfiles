@@ -66,7 +66,6 @@
       "docker"
       "dbeaver-community"
       "insomnia"
-      "pomerium-desktop"
 
       # utility tools
       "bitwarden"
