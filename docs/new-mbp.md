@@ -31,12 +31,6 @@ This will:
 
 Expect a sudo prompt and a long first run while casks download.
 
-## 4. Symlink remaining traditional dotfiles
-
-```sh
-./setup_dotfiles.sh
-```
-
 ## Iterating from here
 
 The strategy after first boot is to SSH in from the old laptop and migrate
