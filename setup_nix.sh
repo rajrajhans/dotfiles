@@ -25,7 +25,7 @@ function setup-prerequisites() {
     # Check if home-manager is installed
     if ! command -v home-manager &> /dev/null; then
         echo "Installing home-manager..."
-        nix-env -iA nixpkgs.home-manager
+        nix profile install nixpkgs#home-manager --extra-experimental-features 'nix-command flakes'
     fi
 }
 
