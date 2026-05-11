@@ -32,14 +32,6 @@
       cleanup = "none";
     };
 
-    taps = [
-      "cloudflare/cloudflare"
-    ];
-
-    brews = [
-      "cloudflared"
-    ];
-
     casks = [
       # browsers
       "google-chrome"
