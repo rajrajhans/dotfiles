@@ -47,6 +47,7 @@ app-specific config, etc. Each addition is a small PR-sized change:
 These still need manual setup on the new machine:
 
 - Raycast settings (export from old machine: Settings → Advanced → Export, then import).
+- iTerm2: open Preferences → General → Preferences and tick "Load preferences from a custom folder", pointed at `~/.config/iterm2`. (The plist itself is already symlinked there by home-manager; this just tells iTerm2 to use it.)
 - iCloud / Apple ID sign-in.
 - Bitwarden login (unlocks everything else).
 - Syncthing pairing (so `~/rdrive` syncs — this is where oh-my-zsh custom plugins live, see `shell/zshrc:3`).
