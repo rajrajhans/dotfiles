@@ -49,9 +49,9 @@
     onActivation = {
       autoUpdate = true;
       upgrade = true;
-      # "none" leaves manually-installed brews alone. Switch to "uninstall"
-      # or "zap" later if you want strict declarative management.
-      cleanup = "none";
+      # "uninstall" removes brews/casks not in this file; preferences in
+      # ~/Library/... are left intact (unlike "zap").
+      cleanup = "uninstall";
     };
 
     casks = [

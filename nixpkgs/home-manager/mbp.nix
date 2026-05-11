@@ -121,6 +121,11 @@
     llm
     vlc-bin
     syncthing-macos
+    bun
+    atomicparsley
+    vips
+    procps  # provides `watch`
+    tree
     (pkgs.callPackage ../notunes.nix { })
     (pkgs.callPackage ../ccusage.nix { })
     (pkgs.callPackage ../claude-code.nix { })
