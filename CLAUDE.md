@@ -1,76 +1,51 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when working in this repo.
 
-## Repository Overview
+## Overview
 
-This is a personal dotfiles repository using Nix/NixOS with Home Manager and nix-darwin for macOS system configuration. The repository manages both system-level configuration and user dotfiles through a flake-based setup.
+Personal dotfiles repo. Three layers:
 
-## Architecture
+1. **System (macOS only)** — nix-darwin, managing `/etc`, launchd, system defaults, and Homebrew via `nix-homebrew`. Entry point: `nixpkgs/darwin/configuration.nix`.
+2. **User (cross-platform)** — home-manager, managing `$HOME`, user packages, dotfiles, user launchd agents. Entry points: `nixpkgs/home-manager/mbp.nix` (macOS) and `nixpkgs/home-manager/server.nix` (Linux).
+3. **Out-of-repo secrets** — anything matching `shell/private_*` is gitignored.
 
-### Nix Flake Structure
-- `flake.nix` - Main flake configuration defining inputs and outputs
-- `nixpkgs/home-manager/mbp.nix` - Main Home Manager configuration for MacBook Pro profile
-- `nixpkgs/home-manager/modules/` - Modular configuration split:
-  - `common.nix` - Package installations and common settings
-  - `home-manager.nix` - Home Manager enablement
-- `nixpkgs/darwin/configuration.nix` - nix-darwin system configuration (keyboard, security, nix daemon)
+Nix is **Determinate Nix**; nix-darwin defers to it via `nix.enable = false`.
 
-### Configuration Layers
-1. **System Level** (nix-darwin): System keyboard mapping, TouchID sudo auth, nix daemon configuration
-2. **User Level** (Home Manager): Package management, user applications, dotfiles
-3. **Traditional Dotfiles**: Shell configurations, git config, application settings
+## Layout
 
-## Common Commands
+- `flake.nix`, `flake.lock` — flake inputs and outputs (homeConfigurations + darwinConfigurations).
+- `nixpkgs/darwin/configuration.nix` — system-level macOS config (keyboard, TouchID, homebrew block).
+- `nixpkgs/home-manager/mbp.nix` — main macOS home-manager profile.
+- `nixpkgs/home-manager/server.nix` — Linux home-manager profile.
+- `nixpkgs/home-manager/modules/` — reusable modules (`micro.nix`, `wakapi.nix`, `yazi.nix`).
+- `nixpkgs/*.nix` — custom package derivations (`ccusage.nix`, `claude-code.nix`, `codex.nix`, `notunes.nix`, `statusline.nix`, `wakapi.nix`).
+- `nixpkgs/update-claude-code.sh` + `claude-code-hashes.json` — version pinning for `claude-code.nix`.
+- `shell/`, `git/`, `config/`, `iterm2/` — dotfile sources, symlinked from home-manager via `home.file`.
+- `scripts/` — user scripts symlinked into `~/.local/bin`.
+- `docs/new-mbp.md` — fresh-laptop setup steps.
 
-### Nix Management
+## Common commands
+
 ```bash
-# Build the Home Manager configuration
-nix build --no-link .#homeConfigurations.mbp.activationPackage
+# Apply everything (home-manager + darwin-rebuild on macOS)
+./setup_nix.sh
 
-# Activate configuration (from setup_nix.sh functions)
-"$(nix path-info .#homeConfigurations.mbp.activationPackage)"/activate
+# Just home-manager
+home-manager switch --flake .#mbp
 
-# Switch to new configuration 
-home-manager switch --flake ".#mbp"
+# Just darwin
+sudo darwin-rebuild switch --flake .#mbp
 
 # Update flake inputs
 nix flake update
-
-# Build Darwin system configuration
-nix build .#darwinConfigurations.mbp.system
-
-# Apply Darwin configuration
-./result/sw/bin/darwin-rebuild switch --flake .
 ```
 
-### Setup Scripts
-```bash
-# Initial system setup (installs Homebrew, common software, Nix)
-./macos/setup_common_software.sh
+`setup_nix.sh` picks the profile from `uname` (`mbp` on Darwin, `server` on Linux). Override via `NIX_PROFILE=foo`.
 
-# Symlink dotfiles to home directory
-./setup_dotfiles.sh
+## Notes
 
-# Build and activate Nix configuration
-./setup_nix.sh
-```
-
-### Profile Management
-The configuration uses a "mbp" profile by default. Functions in `setup_nix.sh` automatically reference this profile.
-
-## Key Dotfiles Managed
-- Shell: `shell/zshrc`, `shell/wakatime.cfg`
-- Git: `git/gitconfig`, `git/gitignore` 
-- Config: `config/iex.exs` (Elixir IEx configuration)
-
-## Package Management Strategy
-- **Nix packages**: Core development tools, CLI utilities (defined in `common.nix`)
-- **Homebrew**: GUI applications, some CLI tools not available in Nix
-- **Custom packages**: `ccusage.nix` - custom package definition
-
-## System Configuration Notes
-- Caps Lock remapped to Escape at system level
-- TouchID enabled for sudo authentication
-- Nix configured with flakes and nix-command experimental features
-- Both x86_64 and aarch64 Darwin platforms supported
+- Caps Lock is remapped to Escape system-wide.
+- TouchID is enabled for `sudo`.
+- Both x86_64 and aarch64 Darwin are supported.
+- Homebrew casks live in `nixpkgs/darwin/configuration.nix` and are installed declaratively via `nix-homebrew`.
