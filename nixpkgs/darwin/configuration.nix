@@ -20,6 +20,28 @@
   # Add ability to used TouchID for sudo authentication
   security.pam.services.sudo_local.touchIdAuth = true;
 
+  # System preferences — captured from System Settings.
+  system.defaults = {
+    dock = {
+      autohide = true;
+      tilesize = 76;
+      wvous-br-corner = 14;  # bottom-right hot corner → Quick Note
+    };
+    finder = {
+      ShowPathbar = true;
+      ShowStatusBar = true;
+      FXPreferredViewStyle = "Nlsv";  # list view
+      FXEnableExtensionChangeWarning = false;
+    };
+    NSGlobalDomain = {
+      AppleShowAllExtensions = true;
+      AppleInterfaceStyle = "Dark";
+      KeyRepeat = 2;            # min UI slider; lower = faster repeats
+      InitialKeyRepeat = 15;    # min UI slider; lower = shorter delay
+      ApplePressAndHoldEnabled = false;  # so held keys repeat instead of showing accent picker
+    };
+  };
+
   # Homebrew (managed via nix-homebrew). GUI apps and a couple of CLIs that
   # aren't in nixpkgs or that we specifically want from brew.
   homebrew = {
