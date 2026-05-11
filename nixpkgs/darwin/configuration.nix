@@ -72,6 +72,7 @@
       "rectangle"
       "stats"
       "cloudflare-warp"
+      "tailscale-app"
       "obsidian"
       "notion"
       "shottr"
