@@ -1,38 +1,24 @@
-{ pkgs, lib, ... }:
+{ ... }:
 
 {
-  # Nix configuration ------------------------------------------------------------------------------
+  # Nix is managed by Determinate Nix, not nix-darwin.
+  # See: https://github.com/DeterminateSystems/nix-installer
+  # Experimental features, the official cache, and trusted users are configured
+  # by the Determinate installer; per-host overrides go in /etc/nix/nix.custom.conf.
+  nix.enable = false;
 
-  nix.binaryCaches = [
-    "https://cache.nixos.org/"
-  ];
-  nix.binaryCachePublicKeys = [
-    "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-  ];
-  nix.trustedUsers = [
-    "@admin"
-  ];
-  
-  users.nix.configureBuildUsers = true;
+  # Required for `homebrew` and other options that act on a specific user.
+  system.primaryUser = "rajrajhans";
 
-  # Enable experimental nix command and flakes
-  # nix.package = pkgs.nixUnstable;
-  nix.extraOptions = ''
-    auto-optimise-store = true
-    experimental-features = nix-command flakes
-  '' + lib.optionalString (pkgs.system == "aarch64-darwin") ''
-    extra-platforms = x86_64-darwin aarch64-darwin
-  '';
-
-  # Auto upgrade nix package and the daemon service.
-  services.nix-daemon.enable = true;
+  # Set once on install; do not change without reading darwin-rebuild changelog.
+  system.stateVersion = 6;
 
   # Keyboard
   system.keyboard.enableKeyMapping = true;
   system.keyboard.remapCapsLockToEscape = true;
 
   # Add ability to used TouchID for sudo authentication
-  security.pam.enableSudoTouchIdAuth = true;
+  security.pam.services.sudo_local.touchIdAuth = true;
 
   # Homebrew (managed via nix-homebrew). GUI apps and a couple of CLIs that
   # aren't in nixpkgs or that we specifically want from brew.
