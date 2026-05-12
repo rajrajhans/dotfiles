@@ -33,6 +33,13 @@
       FXPreferredViewStyle = "Nlsv";  # list view
       FXEnableExtensionChangeWarning = false;
     };
+    menuExtraClock = {
+      ShowSeconds = true;
+      Show24Hour = false;
+      ShowAMPM = false;
+      ShowDate = 2;          # 0 auto, 1 always, 2 never
+      ShowDayOfWeek = false;
+    };
     NSGlobalDomain = {
       AppleShowAllExtensions = true;
       AppleInterfaceStyle = "Dark";
