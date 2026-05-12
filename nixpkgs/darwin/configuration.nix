@@ -54,6 +54,11 @@
       cleanup = "uninstall";
     };
 
+    # Mac App Store apps (installed via `mas`; requires App Store sign-in).
+    masApps = {
+      "Amphetamine" = 937984704;
+    };
+
     casks = [
       # browsers
       "google-chrome"
