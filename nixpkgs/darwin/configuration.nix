@@ -67,6 +67,7 @@
       "dbeaver-community"
 
       # utility tools
+      "alt-tab"
       "bitwarden"
       "rectangle"
       "stats"
