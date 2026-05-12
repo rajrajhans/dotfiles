@@ -25,7 +25,7 @@
     dock = {
       autohide = true;
       tilesize = 76;
-      wvous-br-corner = 14;  # bottom-right hot corner → Quick Note
+      wvous-br-corner = 1;  # bottom-right hot corner disabled
     };
     finder = {
       ShowPathbar = true;
