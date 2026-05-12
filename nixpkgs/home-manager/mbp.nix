@@ -24,6 +24,10 @@
   home.file.".iex.exs".source = ../../config/iex.exs;
   home.file.".duti".source = ../../config/duti;
 
+  # Provide oh-my-zsh as a read-only symlink into the nix store.
+  # ZSH_COMPDUMP is overridden in zshrc to keep the completion cache writable.
+  home.file.".oh-my-zsh".source = "${pkgs.oh-my-zsh}/share/oh-my-zsh";
+
   # iTerm2 — manage the prefs plist. Requires a one-time UI toggle in
   # iTerm2: Preferences → General → "Load preferences from a custom folder",
   # pointed at ~/.config/iterm2.
