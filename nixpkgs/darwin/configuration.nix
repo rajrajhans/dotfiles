@@ -39,6 +39,7 @@
       KeyRepeat = 2;            # min UI slider; lower = faster repeats
       InitialKeyRepeat = 15;    # min UI slider; lower = shorter delay
       ApplePressAndHoldEnabled = false;  # so held keys repeat instead of showing accent picker
+      "com.apple.keyboard.fnState" = true;  # F1–F12 act as standard function keys, not media keys
     };
   };
 
