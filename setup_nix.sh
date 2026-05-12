@@ -31,18 +31,6 @@ function impure-flag() {
     fi
 }
 
-function nix-build() {
-    local profile=$(nix-profile)
-    echo "Building configuration for profile: $profile"
-    nix build --no-link .#homeConfigurations.$profile.activationPackage --extra-experimental-features 'nix-command flakes' $(impure-flag)
-}
-
-function nix-activate() {
-    local profile=$(nix-profile)
-    echo "Activating configuration..."
-    "$(nix path-info .#homeConfigurations.$profile.activationPackage --extra-experimental-features 'nix-command flakes' $(impure-flag))"/activate
-}
-
 function nix-switch() {
     local profile=$(nix-profile)
     echo "Switching to configuration..."
@@ -80,8 +68,6 @@ function darwin-switch() {
 echo "Starting Nix setup for $(nix-profile) profile..."
 
 setup-prerequisites
-nix-build
-nix-activate
 nix-switch
 darwin-switch
 
