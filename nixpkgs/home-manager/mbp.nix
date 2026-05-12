@@ -28,6 +28,15 @@
   # ZSH_COMPDUMP is overridden in zshrc to keep the completion cache writable.
   home.file.".oh-my-zsh".source = "${pkgs.oh-my-zsh}/share/oh-my-zsh";
 
+  # OMZ custom plugins sourced from nixpkgs. ZSH_CUSTOM in zshrc points
+  # at ~/.oh-my-zsh-custom and OMZ loads each plugin from plugins/<name>/.
+  home.file.".oh-my-zsh-custom/plugins/fast-syntax-highlighting".source =
+    "${pkgs.zsh-fast-syntax-highlighting}/share/zsh/plugins/fast-syntax-highlighting";
+  home.file.".oh-my-zsh-custom/plugins/zsh-autosuggestions".source =
+    "${pkgs.zsh-autosuggestions}/share/zsh/plugins/zsh-autosuggestions";
+  home.file.".oh-my-zsh-custom/plugins/zsh-fzf-history-search".source =
+    "${pkgs.zsh-fzf-history-search}/share/zsh-fzf-history-search";
+
   # iTerm2 — manage the prefs plist. Requires a one-time UI toggle in
   # iTerm2: Preferences → General → "Load preferences from a custom folder",
   # pointed at ~/.config/iterm2.

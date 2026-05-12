@@ -1,6 +1,6 @@
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
-ZSH_CUSTOM="$HOME/rdrive/configs/oh-my-zsh-custom-plugins"
+ZSH_CUSTOM="$HOME/.oh-my-zsh-custom"
 # $ZSH is a read-only symlink into the nix store, so redirect the
 # completion dump to a writable location.
 export ZSH_COMPDUMP="$HOME/.cache/zsh/.zcompdump"
