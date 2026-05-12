@@ -86,6 +86,7 @@
       "shottr"
       "transmission"
       "itsycal"
+      "monitorcontrol"
       "raycast"
     ];
   };
