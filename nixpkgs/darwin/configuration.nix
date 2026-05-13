@@ -46,17 +46,21 @@
       InitialKeyRepeat = 15;    # min UI slider; lower = shorter delay
       ApplePressAndHoldEnabled = false;  # so held keys repeat instead of showing accent picker
       "com.apple.keyboard.fnState" = true;  # F1–F12 act as standard function keys, not media keys
-      AppleFnUsageType = 0;  # fn key does nothing (0=nothing, 1=input source, 2=emoji, 3=dictation)
     };
-    # Disable all built-in screenshot shortcuts (using Shottr instead).
-    # symbolichotkeys IDs: 28=save screen, 29=copy screen, 30=save area,
-    # 31=copy area, 184=screenshot/recording options (⇧⌘5).
-    CustomUserPreferences."com.apple.symbolichotkeys".AppleSymbolicHotKeys = {
-      "28" = { enabled = false; };
-      "29" = { enabled = false; };
-      "30" = { enabled = false; };
-      "31" = { enabled = false; };
-      "184" = { enabled = false; };
+    CustomUserPreferences = {
+      # fn key does nothing (0=nothing, 1=input source, 2=emoji, 3=dictation).
+      # Not a typed nix-darwin option, so set via NSGlobalDomain raw.
+      NSGlobalDomain.AppleFnUsageType = 0;
+      # Disable all built-in screenshot shortcuts (using Shottr instead).
+      # symbolichotkeys IDs: 28=save screen, 29=copy screen, 30=save area,
+      # 31=copy area, 184=screenshot/recording options (⇧⌘5).
+      "com.apple.symbolichotkeys".AppleSymbolicHotKeys = {
+        "28" = { enabled = false; };
+        "29" = { enabled = false; };
+        "30" = { enabled = false; };
+        "31" = { enabled = false; };
+        "184" = { enabled = false; };
+      };
     };
   };
 
