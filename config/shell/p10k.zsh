@@ -1,11 +1,4 @@
-# Powerlevel10k config tuned to mimic oh-my-zsh agnoster.
-#
-# Segments (left-to-right, matching agnoster):
-#   status   — red ✘ shown only on non-zero exit
-#   context  — user@host on black bg (hidden when local & default user)
-#   dir      — blue bg, black fg
-#   vcs      — green bg when clean, yellow bg when dirty (black fg)
-# Right prompt is intentionally empty; zshrc sets RPROMPT='$(kube_ps1)'.
+# Powerlevel10k config.
 
 'builtin' 'local' '-a' 'p10k_config_opts'
 [[ ! -o 'aliases'         ]] || p10k_config_opts+=('aliases')
@@ -33,7 +26,7 @@
   typeset -g POWERLEVEL9K_TRANSIENT_PROMPT=off
   typeset -g POWERLEVEL9K_DISABLE_HOT_RELOAD=true
 
-  # Powerline arrow separators (the agnoster glyphs).
+  # Powerline arrow separators.
   typeset -g POWERLEVEL9K_LEFT_SEGMENT_SEPARATOR=$''
   typeset -g POWERLEVEL9K_LEFT_SUBSEGMENT_SEPARATOR=$''
   typeset -g POWERLEVEL9K_LEFT_PROMPT_LAST_SEGMENT_END_SYMBOL=$''
@@ -63,7 +56,7 @@
   typeset -g POWERLEVEL9K_CONTEXT_REMOTE_SUDO_FOREGROUND=default
   typeset -g POWERLEVEL9K_CONTEXT_REMOTE_SUDO_BACKGROUND=black
   typeset -g POWERLEVEL9K_CONTEXT_TEMPLATE='%n@%m'
-  # Hide on local non-root sessions — same trigger as agnoster.
+  # Hide on local non-root sessions.
   typeset -g POWERLEVEL9K_CONTEXT_DEFAULT_CONTENT_EXPANSION=
   typeset -g POWERLEVEL9K_CONTEXT_DEFAULT_VISUAL_IDENTIFIER_EXPANSION=
   typeset -g POWERLEVEL9K_CONTEXT_SUDO_CONTENT_EXPANSION=
@@ -78,7 +71,6 @@
   typeset -g POWERLEVEL9K_DIR_ANCHOR_BOLD=false
   typeset -g POWERLEVEL9K_DIR_HYPERLINK=false
   typeset -g POWERLEVEL9K_DIR_SHOW_WRITABLE=v3
-  # No folder glyph — agnoster doesn't have one.
   typeset -g POWERLEVEL9K_DIR_VISUAL_IDENTIFIER_EXPANSION=
 
   # ---- vcs (git): green clean / yellow dirty, black fg ----
@@ -103,7 +95,6 @@
   typeset -g POWERLEVEL9K_VCS_STASH_ICON='⚑'
   typeset -g POWERLEVEL9K_VCS_CONFLICTED_ICON='✖'
 
-  # Match agnoster: no ahead/behind indicator.
   typeset -g POWERLEVEL9K_VCS_GIT_HOOKS=(vcs-detect-changes git-untracked git-stash)
   typeset -g POWERLEVEL9K_VCS_BACKENDS=(git)
 }
