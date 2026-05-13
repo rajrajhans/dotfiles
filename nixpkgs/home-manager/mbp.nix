@@ -37,6 +37,12 @@
   home.file.".oh-my-zsh-custom/plugins/zsh-fzf-history-search".source =
     "${pkgs.zsh-fzf-history-search}/share/zsh-fzf-history-search";
 
+  # Powerlevel10k as an OMZ custom theme. ZSH_THEME="powerlevel10k/powerlevel10k"
+  # resolves to $ZSH_CUSTOM/themes/powerlevel10k/powerlevel10k.zsh-theme.
+  home.file.".oh-my-zsh-custom/themes/powerlevel10k".source =
+    "${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k";
+  home.file.".p10k.zsh".source = ../../config/shell/p10k.zsh;
+
   # iTerm2 — manage the prefs plist. Requires a one-time UI toggle in
   # iTerm2: Preferences → General → "Load preferences from a custom folder",
   # pointed at ~/.config/iterm2.
@@ -75,6 +81,7 @@
     fd
     ripgrep
     zsh
+    zsh-powerlevel10k
     wget
     fzf
     glow
