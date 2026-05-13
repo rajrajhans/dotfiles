@@ -76,6 +76,7 @@
 
       # utility tools
       "bitwarden"
+      "maccy"
       "rectangle"
       "stats"
       "cloudflare-warp"
