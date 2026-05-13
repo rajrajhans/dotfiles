@@ -1,4 +1,4 @@
-{ ... }:
+{ config, ... }:
 
 {
   # Nix is managed by Determinate Nix, not nix-darwin.
@@ -89,4 +89,25 @@
       "raycast"
     ];
   };
+
+  # Copy home-manager-installed .app bundles into /Applications/Nix Apps so
+  # Spotlight, Launchpad, and the Dock can find them. Nix store paths and the
+  # ~/Applications/Home Manager Apps symlink chain are not indexed by Launch
+  # Services, so plain symlinks do not show up in search.
+  system.activationScripts.nixApps.text = ''
+    nixAppsDir="/Applications/Nix Apps"
+    hmAppsDir="/Users/${config.system.primaryUser}/Applications/Home Manager Apps"
+
+    rm -rf "$nixAppsDir"
+    mkdir -p "$nixAppsDir"
+
+    if [ -d "$hmAppsDir" ]; then
+      find "$hmAppsDir" -maxdepth 1 -name '*.app' | while read -r app; do
+        target=$(readlink -f "$app")
+        name=$(basename "$app")
+        echo "copying $name to $nixAppsDir" >&2
+        cp -R "$target" "$nixAppsDir/$name"
+      done
+    fi
+  '';
 }
