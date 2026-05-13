@@ -104,7 +104,9 @@
   # Skip showing remote tracking arrows when zero — agnoster doesn't show them.
   typeset -g POWERLEVEL9K_VCS_GIT_HOOKS=(vcs-detect-changes git-untracked git-aheadbehind git-stash)
   typeset -g POWERLEVEL9K_VCS_BACKENDS=(git)
-
-  (( ! $#p10k_config_opts )) || setopt ${p10k_config_opts[@]}
-  'builtin' 'unset' 'p10k_config_opts'
 }
+
+# Restore caller's options. Must run OUTSIDE the anonymous function above,
+# whose `emulate -L zsh` localizes setopt changes.
+(( ! $#p10k_config_opts )) || setopt ${p10k_config_opts[@]}
+'builtin' 'unset' 'p10k_config_opts'
