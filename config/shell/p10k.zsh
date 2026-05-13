@@ -78,6 +78,8 @@
   typeset -g POWERLEVEL9K_DIR_ANCHOR_BOLD=false
   typeset -g POWERLEVEL9K_DIR_HYPERLINK=false
   typeset -g POWERLEVEL9K_DIR_SHOW_WRITABLE=v3
+  # No folder glyph — agnoster doesn't have one.
+  typeset -g POWERLEVEL9K_DIR_VISUAL_IDENTIFIER_EXPANSION=
 
   # ---- vcs (git): green clean / yellow dirty, black fg ----
   typeset -g POWERLEVEL9K_VCS_CLEAN_FOREGROUND=black
@@ -91,7 +93,7 @@
   typeset -g POWERLEVEL9K_VCS_LOADING_FOREGROUND=black
   typeset -g POWERLEVEL9K_VCS_LOADING_BACKGROUND=green
 
-  typeset -g POWERLEVEL9K_VCS_BRANCH_ICON=$' '
+  typeset -g POWERLEVEL9K_VCS_BRANCH_ICON=''
   typeset -g POWERLEVEL9K_VCS_COMMIT_ICON='➦ '
   typeset -g POWERLEVEL9K_VCS_STAGED_ICON='✚'
   typeset -g POWERLEVEL9K_VCS_UNSTAGED_ICON='●'
@@ -101,8 +103,8 @@
   typeset -g POWERLEVEL9K_VCS_STASH_ICON='⚑'
   typeset -g POWERLEVEL9K_VCS_CONFLICTED_ICON='✖'
 
-  # Skip showing remote tracking arrows when zero — agnoster doesn't show them.
-  typeset -g POWERLEVEL9K_VCS_GIT_HOOKS=(vcs-detect-changes git-untracked git-aheadbehind git-stash)
+  # Match agnoster: no ahead/behind indicator.
+  typeset -g POWERLEVEL9K_VCS_GIT_HOOKS=(vcs-detect-changes git-untracked git-stash)
   typeset -g POWERLEVEL9K_VCS_BACKENDS=(git)
 }
 
