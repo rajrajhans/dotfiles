@@ -140,6 +140,7 @@
     procps  # provides `watch`
     tree
     (pkgs.callPackage ../notunes.nix { })
+    (pkgs.callPackage ../alttab.nix { })
     (pkgs.callPackage ../ccusage.nix { })
     (pkgs.callPackage ../claude-code.nix { })
     (pkgs.callPackage ../codex.nix { })
