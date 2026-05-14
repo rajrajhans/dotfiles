@@ -102,6 +102,7 @@
       "itsycal"
       "monitorcontrol"
       "raycast"
+      "vibe-notch"
     ];
   };
 
