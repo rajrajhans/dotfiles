@@ -151,6 +151,7 @@
     (pkgs.callPackage ../ccusage.nix { })
     (pkgs.callPackage ../claude-code.nix { })
     (pkgs.callPackage ../codex.nix { })
+    (pkgs.callPackage ../pi.nix { })
     diffnav
   ] ++ lib.optionals stdenv.isDarwin [
     coreutils
