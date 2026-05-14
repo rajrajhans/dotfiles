@@ -4,6 +4,13 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
+# Opt-in gitstatusd debug logging. Touch ~/.gitstatus-debug to enable
+# (then `exec zsh`); each shell writes its daemon's stderr to
+# $GITSTATUS_DAEMON_LOG_POWERLEVEL9K. Used to root-cause stuck "dirty"
+# prompts: inspect the log when the prompt is wrongly orange to see
+# what gitstatusd flagged as dirty/untracked.
+[[ -e $HOME/.gitstatus-debug ]] && export GITSTATUS_ENABLE_LOGGING=1
+
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_CUSTOM="$HOME/.oh-my-zsh-custom"
