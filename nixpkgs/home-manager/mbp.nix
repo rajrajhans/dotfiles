@@ -67,6 +67,16 @@
     };
   };
 
+  launchd.agents.alttab = {
+    enable = true;
+    config = {
+      Label = "com.lwouis.alt-tab-macos";
+      ProgramArguments = [ "${pkgs.callPackage ../alttab.nix { }}/Applications/AltTab.app/Contents/MacOS/AltTab" ];
+      RunAtLoad = true;
+      KeepAlive = false;
+    };
+  };
+
   launchd.agents.syncthing = {
     enable = true;
     config = {

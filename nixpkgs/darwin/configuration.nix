@@ -51,15 +51,19 @@
       # fn key does nothing (0=nothing, 1=input source, 2=emoji, 3=dictation).
       # Not a typed nix-darwin option, so set via NSGlobalDomain raw.
       NSGlobalDomain.AppleFnUsageType = 0;
-      # Disable all built-in screenshot shortcuts (using Shottr instead).
+      # Disable built-in screenshot shortcuts (using Shottr instead),
+      # free ⌘Space for Raycast, and disable the ⌘Esc Game Overlay.
       # symbolichotkeys IDs: 28=save screen, 29=copy screen, 30=save area,
-      # 31=copy area, 184=screenshot/recording options (⇧⌘5).
+      # 31=copy area, 64=show Spotlight search (⌘Space),
+      # 184=screenshot/recording options (⇧⌘5), 260=Game Overlay (⌘Esc).
       "com.apple.symbolichotkeys".AppleSymbolicHotKeys = {
         "28" = { enabled = false; };
         "29" = { enabled = false; };
         "30" = { enabled = false; };
         "31" = { enabled = false; };
+        "64" = { enabled = false; };
         "184" = { enabled = false; };
+        "260" = { enabled = false; };
       };
     };
   };
