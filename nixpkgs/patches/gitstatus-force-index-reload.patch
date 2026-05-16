@@ -1,0 +1,31 @@
+Force libgit2 to re-read the index every request.
+
+A long-running gitstatusd caches a libgit2 `git_index*` between requests and
+refreshes it with `git_index_read_ex(force=0)`. When another process (`git
+commit`, `git add`, rebase, …) rewrites `.git/index`, libgit2's stat-based
+change detection does not reliably notice — `was_new_index` stays false, the
+cached entries keep their pre-mutation mtime/size, and the daemon reports
+phantom staged/unstaged counts until the daemon dies. Reproduces deterministi-
+cally; debug log shows "Index and HEAD unchanged; staged = 1" followed by
+"Dirty candidate (modified): a.txt: fsize 3 => 7".
+
+Symptom cluster covers powerlevel10k#2473, gitstatus#474, #452, #197, #2232,
+#2387 — each previously diagnosed as a different config trigger (`feature.
+manyFiles`, `index.skipHash`, `core.untrackedCache`, fsmonitor). The real
+mechanism is libgit2's change-detection: with `force=1` we bypass it and pay
+~5 ms per request on a 7 k-file repo to always re-parse the index.
+
+Upstream is on life support (powerlevel10k#2681) so this is carried locally.
+
+diff --git a/src/repo.cc b/src/repo.cc
+--- a/src/repo.cc
++++ b/src/repo.cc
+@@ -146,7 +146,7 @@ IndexStats Repo::GetIndexStats(const git_oid* head, git_config* cfg) {
+
+   if (git_index_) {
+     int new_index;
+-    VERIFY(!git_index_read_ex(git_index_, 0, &new_index)) << GitError();
++    VERIFY(!git_index_read_ex(git_index_, 1, &new_index)) << GitError();
+     if (new_index) {
+       head_ = {};
+       index_.reset();
