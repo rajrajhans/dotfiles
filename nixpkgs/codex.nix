@@ -6,18 +6,18 @@
 }:
 
 let
-  version = "0.130.0";
+  version = "0.133.0";
 
   platformMap = {
     aarch64-darwin = {
       npmPlatform = "darwin-arm64";
       targetTriple = "aarch64-apple-darwin";
-      hash = "sha256-WpVT3xY7gkvcCScg6Jnu8A3APN+w442s6JQXSC+BV9c=";
+      hash = "sha256-QJNrSiMfm7X4iNB0Q8794X3Ze7a5S7DDh7o9uE965lk=";
     };
     x86_64-linux = {
       npmPlatform = "linux-x64";
       targetTriple = "x86_64-unknown-linux-musl";
-      hash = "sha256-uWWaVDjImmXmMTPDnxSghFOVZ9jpxR7oC1c0I1GjatI=";
+      hash = "sha256-4T6OEZP6lIXTOmYCEUk77C1bjAgaGE2U+S+aCpef2vI=";
     };
   };
 
@@ -35,7 +35,7 @@ stdenv.mkDerivation {
 
   src = fetchzip {
     url = "https://registry.npmjs.org/@openai/codex/-/codex-${version}.tgz";
-    hash = "sha256-xj5D/0CQMnXB3hDvP99VAiSCqyZ9gXNj1Hyolac6I/Q=";
+    hash = "sha256-jiSDnU998XGd8t5kqrH1A1yGut/4davaGi335Aypw68=";
   };
 
   nativeBuildInputs = [ makeWrapper ];
@@ -48,8 +48,8 @@ stdenv.mkDerivation {
 
     cp -r ${vendorSrc}/vendor $out/lib/node_modules/@openai/codex/vendor
     chmod -R u+w $out/lib/node_modules/@openai/codex/vendor
-    chmod +x $out/lib/node_modules/@openai/codex/vendor/${platform.targetTriple}/codex/codex
-    chmod +x $out/lib/node_modules/@openai/codex/vendor/${platform.targetTriple}/path/rg
+    chmod +x $out/lib/node_modules/@openai/codex/vendor/${platform.targetTriple}/bin/codex
+    chmod +x $out/lib/node_modules/@openai/codex/vendor/${platform.targetTriple}/codex-path/rg
 
     mkdir -p $out/bin
     makeWrapper ${nodejs_22}/bin/node $out/bin/codex \
