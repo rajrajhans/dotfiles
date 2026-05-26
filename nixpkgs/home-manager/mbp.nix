@@ -142,7 +142,7 @@
     k9s
     rar
     imagemagick
-    poppler
+    poppler-utils
     age
     just
     duti
