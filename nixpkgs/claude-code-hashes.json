@@ -1,7 +1,7 @@
 {
-  "version": "2.1.148",
+  "version": "2.1.153",
   "hashes": {
-    "aarch64-darwin": "sha256-9KGGDT2bAWU93kGD4vEhbKngwaQE3WPKpO3wfJBBAqo=",
-    "x86_64-linux": "sha256-OziDahgBpjl/hDHGpisSfOR+Pp0QPBpwD8p/nIq1+Kw="
+    "aarch64-darwin": "sha256-RJ2cidemOx1CfZEqe9bm8j+aezY4Zml8n6mgASVGslQ=",
+    "x86_64-linux": "sha256-IU9gPzGUIWLayaZfGNQ7OsZGriFSQPrUgcSq1sYPLjg="
   }
 }
