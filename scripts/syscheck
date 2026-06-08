@@ -18,9 +18,11 @@ gather() {
     echo "--- DISK ---"
     df -h /
     echo "--- TOP BY CPU (full cmdline) ---"
-    ps -eo pid,%cpu,%mem,rss,command | sort -k2 -rn | head -25
+    # Use Apple's signed /bin/ps: the Nix procps ps lacks the entitlement
+    # required to read %mem/rss for processes it doesn't own.
+    /bin/ps -eo pid,%cpu,%mem,rss,command | sort -k2 -rn | head -25
     echo "--- TOP BY MEM (full cmdline) ---"
-    ps -eo pid,%cpu,%mem,rss,command | sort -k3 -rn | head -25
+    /bin/ps -eo pid,%cpu,%mem,rss,command | sort -k3 -rn | head -25
   else
     echo "PLATFORM: Linux"
     echo "CPU: $(nproc 2>/dev/null || echo '?') cores, $(grep 'model name' /proc/cpuinfo 2>/dev/null | head -1 | cut -d: -f2 | xargs || echo 'Unknown')"
