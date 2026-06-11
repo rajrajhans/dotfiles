@@ -80,6 +80,10 @@
       cleanup = "uninstall";
     };
 
+    taps = [
+      "lihaoyun6/tap"
+    ];
+
     casks = [
       # browsers
       "google-chrome"
@@ -106,6 +110,7 @@
       "itsycal"
       "monitorcontrol"
       "raycast"
+      "lihaoyun6/tap/quickrecorder"
     ];
   };
 
