@@ -34,8 +34,10 @@
     "${pkgs.zsh-fast-syntax-highlighting}/share/zsh/plugins/fast-syntax-highlighting";
   home.file.".oh-my-zsh-custom/plugins/zsh-autosuggestions".source =
     "${pkgs.zsh-autosuggestions}/share/zsh/plugins/zsh-autosuggestions";
-  home.file.".oh-my-zsh-custom/plugins/zsh-fzf-history-search".source =
-    "${pkgs.zsh-fzf-history-search}/share/zsh-fzf-history-search";
+
+  # atuin config — shell history database & search (replaces the old
+  # zsh-fzf-history-search and per-directory-history OMZ plugins).
+  home.file.".config/atuin/config.toml".source = ../../config/atuin/config.toml;
 
   # Powerlevel10k as an OMZ custom theme. ZSH_THEME="powerlevel10k/powerlevel10k"
   # resolves to $ZSH_CUSTOM/themes/powerlevel10k/powerlevel10k.zsh-theme.
@@ -92,6 +94,7 @@
     ripgrep
     zsh
     zsh-powerlevel10k
+    atuin
     wget
     fzf
     glow
