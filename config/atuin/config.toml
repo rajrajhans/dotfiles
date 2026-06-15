@@ -1,0 +1,45 @@
+# atuin config — https://docs.atuin.sh/configuration/config/
+# Managed in dotfiles; symlinked to ~/.config/atuin/config.toml.
+
+## Search ----------------------------------------------------------------
+
+# Default scope for the interactive search (Ctrl-R). "global" searches all
+# history across every directory and machine.
+filter_mode = "global"
+
+# Up-arrow scope. "directory" reproduces the old per-directory-history
+# behaviour: up-arrow walks history recorded in the current directory.
+filter_mode_shell_up_key_binding = "directory"
+
+# Fuzzy matching, like the old zsh-fzf-history-search.
+search_mode = "fuzzy"
+
+## UI --------------------------------------------------------------------
+
+# Compact inline UI under the prompt rather than a full-screen takeover.
+style = "compact"
+inline_height = 20
+
+# Newest results at the bottom, cursor starts there.
+invert = false
+
+## Behaviour -------------------------------------------------------------
+
+# Selecting an entry places it on the prompt for review instead of running
+# it immediately. Set to true if you prefer one-keystroke execution.
+enter_accept = false
+
+# Commands matching these are never recorded.
+history_filter = [
+  "^export BWS_ACCESS_TOKEN",
+  "^export ANTHROPIC_API_KEY",
+  "(API_KEY|SECRET|TOKEN|PASSWORD)=",
+]
+
+## Sync ------------------------------------------------------------------
+# Cross-machine sync is opt-in and set up interactively (atuin register /
+# atuin login + atuin sync). Once logged in, enable automatic sync:
+auto_sync = true
+sync_frequency = "10m"
+# For self-hosting, point this at your server:
+# sync_address = "https://atuin.example.com"

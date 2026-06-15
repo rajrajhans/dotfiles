@@ -1,0 +1,10 @@
+#!/bin/sh
+# Thin wrapper around the tailnet-sidecar tailscaled instance's CLI socket, so you
+# don't have to pass --socket every time. The sidecar is a second userspace tailscaled
+# on the personal tailnet (see tailnet-sidecar/GOALS.md and home-manager/mbp.nix).
+#
+# Usage:
+#   tsidecar up --hostname=mac-tailnet-sidecar   # one-time auth (opens a login URL)
+#   tsidecar status
+#   tsidecar logout
+exec tailscale --socket="$HOME/.local/state/tailnet-sidecar/tailscaled.sock" "$@"

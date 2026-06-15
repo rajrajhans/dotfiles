@@ -19,6 +19,11 @@
   # Add ability to used TouchID for sudo authentication
   security.pam.services.sudo_local.touchIdAuth = true;
 
+  # The tailnet-sidecar PAC is served over http (not file://) by a caddy launchd agent
+  # in home-manager, because Chrome refuses to load PAC scripts from file:// URLs. The
+  # PAC source of truth is tailnet-sidecar/tailnet-sidecar.pac. The system auto-proxy is
+  # pointed at that http URL by the postActivation hook below.
+
   # System preferences — captured from System Settings.
   system.defaults = {
     dock = {
@@ -133,5 +138,24 @@
         cp -R "$target" "$nixAppsDir/$name"
       done
     fi
+  '';
+
+  # Enable the tailnet-sidecar PAC as the system auto-proxy for every network service.
+  # NOTE: this MUST live in the `postActivation` hook — nix-darwin silently ignores
+  # arbitrarily-named system.activationScripts entries (only its predefined hooks run),
+  # which is why an earlier `system.activationScripts.tailnetSidecarProxy` never applied.
+  system.activationScripts.postActivation.text = ''
+    pacURL="http://127.0.0.1:1056/tailnet-sidecar.pac"
+
+    /usr/sbin/networksetup -listallnetworkservices | /usr/bin/tail -n +2 | while IFS= read -r service; do
+      [ -n "$service" ] || continue
+
+      # networksetup prefixes disabled services with "*".
+      service="''${service#\*}"
+
+      echo "configuring auto proxy for $service" >&2
+      /usr/sbin/networksetup -setautoproxyurl "$service" "$pacURL" || true
+      /usr/sbin/networksetup -setautoproxystate "$service" on || true
+    done
   '';
 }

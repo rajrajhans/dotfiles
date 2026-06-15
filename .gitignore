@@ -4,3 +4,17 @@ homelab/node.env
 .env.local
 result
 result-*
+
+# Shell history must NEVER enter this public repo (HISTFILE is ~/.zsh_history,
+# kept outside the repo on purpose). These guard against accidental drops.
+*.zsh_history
+.zsh_history
+.zhistory
+.sync-conflict-*
+
+# atuin secrets — only config/atuin/config.toml is tracked. The encryption
+# key, sync session, and local db hold/derive sensitive data and must not leak.
+config/atuin/key
+config/atuin/session
+config/atuin/*.db
+config/atuin/history.db*
