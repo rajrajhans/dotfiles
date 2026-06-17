@@ -247,6 +247,7 @@ in
     nixpkgs-fmt
 
     awscli2
+    flyctl
     caddy
 
     rclone
