@@ -2,6 +2,9 @@
 app = "exit-node-enqp"
 primary_region = "sjc"
 
+[env]
+  TS_HOSTNAME = "fly-us-exit"
+
 [build]
   dockerfile = "Dockerfile"
 

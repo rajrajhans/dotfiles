@@ -1,0 +1,19 @@
+# Singapore sibling of fly.toml (shares Dockerfile/image.nix/start.sh).
+# Deploy: flyctl deploy -c fly.sin.toml
+app = "exit-node-nnar"
+primary_region = "sin"
+
+[env]
+  TS_HOSTNAME = "fly-sg-exit"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[[mounts]]
+  source = "ts_state"
+  destination = "/var/lib/tailscale"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+  cpus = 1

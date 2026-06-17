@@ -16,7 +16,21 @@ let
   tailnetSidecarPacPort = "1056";
   tailnetSidecarPacUrl = "http://127.0.0.1:${tailnetSidecarPacPort}/tailnet-sidecar.pac";
 
-  exitProxyRelayPort = "1057";
+  # Bridge a local SOCKS port through the tailnet sidecar to a Fly exit-node proxy.
+  mkExitRelay = { label, port, targetHost }: {
+    enable = true;
+    config = {
+      Label = label;
+      ProgramArguments = [
+        "${pkgs.nmap}/bin/ncat" "-l" "127.0.0.1" port "--keep-open" "--sh-exec"
+        "${pkgs.nmap}/bin/ncat --proxy-type socks5 --proxy ${tailnetSidecarProxy} --proxy-dns local ${targetHost} 1080"
+      ];
+      RunAtLoad = true;
+      KeepAlive = true;
+      StandardOutPath = "${tailnetSidecarDir}/${label}.log";
+      StandardErrorPath = "${tailnetSidecarDir}/${label}.log";
+    };
+  };
 in
 {
   imports = [
@@ -198,23 +212,10 @@ in
     };
   };
 
-  launchd.agents.exitProxyRelay = {
-    enable = true;
-    config = {
-      Label = "com.rajrajhans.exit-proxy-relay";
-      ProgramArguments = [
-        "${pkgs.nmap}/bin/ncat"
-        "-l" "127.0.0.1" exitProxyRelayPort
-        "--keep-open"
-        "--sh-exec"
-        "${pkgs.nmap}/bin/ncat --proxy-type socks5 --proxy ${tailnetSidecarProxy} --proxy-dns local exit-us.rajrajhans.com 1080"
-      ];
-      RunAtLoad = true;
-      KeepAlive = true;
-      StandardOutPath = "${tailnetSidecarDir}/exit-proxy-relay.log";
-      StandardErrorPath = "${tailnetSidecarDir}/exit-proxy-relay.log";
-    };
-  };
+  launchd.agents.exitProxyRelayUs =
+    mkExitRelay { label = "com.rajrajhans.exit-proxy-relay-us"; port = "1057"; targetHost = "exit-us.rajrajhans.com"; };
+  launchd.agents.exitProxyRelaySg =
+    mkExitRelay { label = "com.rajrajhans.exit-proxy-relay-sg"; port = "1058"; targetHost = "exit-sg.rajrajhans.com"; };
 
   home.packages = with pkgs; [
     fd
