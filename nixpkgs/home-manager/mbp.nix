@@ -15,6 +15,8 @@ let
   tailnetSidecarPacDir = "${config.home.homeDirectory}/.local/state/tailnet-sidecar-pac";
   tailnetSidecarPacPort = "1056";
   tailnetSidecarPacUrl = "http://127.0.0.1:${tailnetSidecarPacPort}/tailnet-sidecar.pac";
+
+  exitProxyRelayPort = "1057";
 in
 {
   imports = [
@@ -193,6 +195,24 @@ in
       KeepAlive = true;
       StandardOutPath = "${tailnetSidecarDir}/caddy-pac.log";
       StandardErrorPath = "${tailnetSidecarDir}/caddy-pac.log";
+    };
+  };
+
+  launchd.agents.exitProxyRelay = {
+    enable = true;
+    config = {
+      Label = "com.rajrajhans.exit-proxy-relay";
+      ProgramArguments = [
+        "${pkgs.nmap}/bin/ncat"
+        "-l" "127.0.0.1" exitProxyRelayPort
+        "--keep-open"
+        "--sh-exec"
+        "${pkgs.nmap}/bin/ncat --proxy-type socks5 --proxy ${tailnetSidecarProxy} --proxy-dns local exit-us.rajrajhans.com 1080"
+      ];
+      RunAtLoad = true;
+      KeepAlive = true;
+      StandardOutPath = "${tailnetSidecarDir}/exit-proxy-relay.log";
+      StandardErrorPath = "${tailnetSidecarDir}/exit-proxy-relay.log";
     };
   };
 
