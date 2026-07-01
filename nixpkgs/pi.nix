@@ -2,11 +2,15 @@
 
 buildNpmPackage rec {
   pname = "pi-coding-agent";
-  version = "0.73.1";
+  version = "0.80.3";
 
   src = ./pi;
 
-  npmDepsHash = "sha256-K0PdAtr16EFXGrlPGbNKaJTfgCC1OwdTgfZ62HvZkXQ=";
+  npmDepsHash = "sha256-cCg73FD2ezYj7caRJBAHGs+jWvSIHKfwt/cxOCIQUf0=";
+
+  # Upstream nests same-scope transitive deps and drops their integrity
+  # (npm bug), which the default fetcher can't cache — use v2.
+  npmDepsFetcherVersion = 2;
 
   nodejs = nodejs_22;
 
@@ -23,7 +27,7 @@ buildNpmPackage rec {
 
     mkdir -p $out/bin
     makeWrapper ${nodejs_22}/bin/node $out/bin/pi \
-      --add-flags "$out/lib/pi/node_modules/@mariozechner/pi-coding-agent/dist/cli.js"
+      --add-flags "$out/lib/pi/node_modules/@earendil-works/pi-coding-agent/dist/cli.js"
 
     runHook postInstall
   '';
