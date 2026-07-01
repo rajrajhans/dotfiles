@@ -116,6 +116,7 @@
       "monitorcontrol"
       "raycast"
       "lihaoyun6/tap/quickrecorder"
+      "fluidvoice"
     ];
   };
 
