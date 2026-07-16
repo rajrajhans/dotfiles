@@ -5,6 +5,9 @@ homelab/node.env
 result
 result-*
 
+# Local scratch / research notes — not tracked
+/tmp/
+
 # Shell history must NEVER enter this public repo (HISTFILE is ~/.zsh_history,
 # kept outside the repo on purpose). These guard against accidental drops.
 *.zsh_history
