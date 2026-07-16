@@ -113,6 +113,13 @@ in
     run /bin/mkdir -p "${tailnetSidecarDir}/state"
   '';
 
+  # Persistent scratch/working dir for the dotfiles repo. Gitignored (see
+  # .gitignore `/tmp/`) and (re)created on every home-manager switch —
+  # Claude Code is told to use it instead of the session scratchpad (CLAUDE.md).
+  home.activation.dotfilesScratchDir = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    run /bin/mkdir -p "${config.home.homeDirectory}/dotfiles/tmp"
+  '';
+
   # Firefox uses the cask install with auto-named profiles, so its proxy PAC can't be
   # managed via programs.firefox/home.file. Write user.js into every existing profile
   # so Firefox routes *.internal through the tailnet sidecar (see config/firefox/user.js).
