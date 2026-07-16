@@ -1,17 +1,17 @@
 { lib, stdenv, fetchFromGitHub, makeWrapper, jq }:
 
 let
-  rev = "a43ac9fc423a9bd4ed791e1264e2f3ce94848523";
+  rev = "9a17b67a6e2950ef9363d49b6d4456de3f170c1a";
 in
 stdenv.mkDerivation {
   pname = "fast-claude-code-statusline";
-  version = "0-unstable-2025-02-17";
+  version = "0-unstable-2026-07-16";
 
   src = fetchFromGitHub {
     owner = "rajrajhans";
     repo = "fast-claude-code-statusline";
     inherit rev;
-    hash = "sha256-xMOQ+QjpAUj7QY+x6Q8YlYfWIizqBr2yvu8p6s+uh4c=";
+    hash = "sha256-jb+nQsS4v+GS7bB3SnpUy0E1/1JeUTV3ULoYbEhgGNQ=";
   };
 
   nativeBuildInputs = [ makeWrapper ];
