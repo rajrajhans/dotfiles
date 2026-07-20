@@ -2,11 +2,11 @@
 
 buildNpmPackage rec {
   pname = "pi-coding-agent";
-  version = "0.80.3";
+  version = "0.80.10";
 
   src = ./pi;
 
-  npmDepsHash = "sha256-cCg73FD2ezYj7caRJBAHGs+jWvSIHKfwt/cxOCIQUf0=";
+  npmDepsHash = "sha256-UyH7YnSVMfTvV53myV3rHbub/Caqrzji4MOpKzMaAvA=";
 
   # Upstream nests same-scope transitive deps and drops their integrity
   # (npm bug), which the default fetcher can't cache — use v2.
