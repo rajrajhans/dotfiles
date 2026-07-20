@@ -53,6 +53,7 @@ in
     python3
     nodejs
     (pkgs.callPackage ../claude-code.nix { })
+    (pkgs.callPackage ../codex.nix { })
 
     # Media utilities
     yt-dlp
