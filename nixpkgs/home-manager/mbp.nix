@@ -1,4 +1,4 @@
-{ config, pkgs, pkgsUnstable, lib, ... }:
+{ config, pkgs, pkgsUnstable, tokmeter, lib, ... }:
 
 let
   # Tailnet sidecar: a second userspace tailscaled joined to the personal tailnet,
@@ -304,6 +304,7 @@ in
     (pkgs.callPackage ../codex.nix { })
     (pkgs.callPackage ../grok-build.nix { })
     (pkgs.callPackage ../pi.nix { })
+    tokmeter  # github:rajrajhans/tokmeter flake input
     diffnav
   ] ++ lib.optionals stdenv.isDarwin [
     coreutils

@@ -13,9 +13,15 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-homebrew.url = "github:zhaofengli/nix-homebrew";
+    # Private repo — ssh URL so the fetcher uses the git remote (agent/key) and
+    # not the GitHub API, which 404s without a token.
+    tokmeter = {
+      url = "git+ssh://git@github.com/rajrajhans/tokmeter?ref=main";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = inputs @ { self, nixpkgs, home-manager, nixpkgsUnstable, darwin, nix-homebrew, ... }:
+  outputs = inputs @ { self, nixpkgs, home-manager, nixpkgsUnstable, darwin, nix-homebrew, tokmeter, ... }:
     let
       # Carry a one-line patch against gitstatusd: pass force=1 to
       # git_index_read_ex so we always re-parse the index instead of trusting
@@ -45,7 +51,10 @@
           ];
         };
         modules = [ ./nixpkgs/home-manager/mbp.nix ];
-        extraSpecialArgs = { pkgsUnstable = inputs.nixpkgsUnstable.legacyPackages.aarch64-darwin; };
+        extraSpecialArgs = {
+          pkgsUnstable = inputs.nixpkgsUnstable.legacyPackages.aarch64-darwin;
+          tokmeter = inputs.tokmeter.packages.aarch64-darwin.default;
+        };
       };
 
       server = home-manager.lib.homeManagerConfiguration {
