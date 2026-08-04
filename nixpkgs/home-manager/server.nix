@@ -172,6 +172,11 @@ in
       kcapply = "kubectl apply -f";
       ccc = "claude --dangerously-skip-permissions";
       c = "ccc";
+      cr = "c -r";
+      copus = "c --model opus";
+      csonnet = "c --model sonnet";
+      chaiku = "c --model haiku";
+      cfable = "c --model fable";
       codex = "codex --dangerously-bypass-approvals-and-sandbox";
       cx = "codex";
     };
