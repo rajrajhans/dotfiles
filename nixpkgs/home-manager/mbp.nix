@@ -147,10 +147,13 @@ in
     };
   };
 
+  # Label must NOT be com.lwouis.alt-tab-macos: AltTab's own "start at login" toggle
+  # owns ~/Library/LaunchAgents/<that label>.plist and deletes it when the pref is off,
+  # taking our agent with it. Keep the label namespaced.
   launchd.agents.alttab = {
     enable = true;
     config = {
-      Label = "com.lwouis.alt-tab-macos";
+      Label = "com.rajrajhans.alt-tab-macos";
       ProgramArguments = [ "${pkgs.callPackage ../alttab.nix { }}/Applications/AltTab.app/Contents/MacOS/AltTab" ];
       RunAtLoad = true;
       KeepAlive = false;
