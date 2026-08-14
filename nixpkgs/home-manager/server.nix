@@ -179,6 +179,7 @@ in
       cfable = "c --model fable";
       codex = "codex --dangerously-bypass-approvals-and-sandbox";
       cx = "codex";
+      cxr = "cx resume"; # session picker; `cxr --last` for the most recent
     };
     initExtra = ''
       # PATH

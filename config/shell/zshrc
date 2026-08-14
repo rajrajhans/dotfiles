@@ -65,6 +65,7 @@ alias chaiku='c --model haiku'
 alias cfable='c --model fable'
 alias codex='codex --dangerously-bypass-approvals-and-sandbox'
 alias cx='codex'
+alias cxr='cx resume' # session picker; `cxr --last` for the most recent
 
 # git related aliases
 alias g='git'
