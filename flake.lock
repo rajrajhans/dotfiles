@@ -158,11 +158,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1785759527,
-        "narHash": "sha256-8pArdOK0SR4v7Wf4ieajQCU33d84RcA0Al4wRXrf1r8=",
+        "lastModified": 1787232260,
+        "narHash": "sha256-Ngt4e7Ts2k7eGBfTsKZLNGhcAnjz5ZJe/kXIv7eHKVI=",
         "ref": "main",
-        "rev": "152e28e617db46ebfea283d861eec5e0a7533a18",
-        "revCount": 10,
+        "rev": "c28af79269d0cb55d65be996aab2af4d11ee0588",
+        "revCount": 16,
         "type": "git",
         "url": "ssh://git@github.com/rajrajhans/tokmeter"
       },
