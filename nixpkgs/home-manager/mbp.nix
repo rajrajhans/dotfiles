@@ -305,6 +305,7 @@ in
     (pkgs.callPackage ../ccusage.nix { })
     (pkgs.callPackage ../claude-code.nix { })
     (pkgs.callPackage ../codex.nix { })
+    (pkgs.callPackage ../cursor-agent.nix { })
     (pkgs.callPackage ../grok-build.nix { })
     (pkgs.callPackage ../pi.nix { })
     tokmeter  # github:rajrajhans/tokmeter flake input
