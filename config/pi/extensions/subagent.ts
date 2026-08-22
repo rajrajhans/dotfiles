@@ -23,7 +23,6 @@ const NAME_ENV = 'PI_SUBAGENT_NAME';
 // the per-child turn and cost budgets below. This only exists so a confused
 // parent emitting spawn calls in a loop cannot open an unbounded fleet.
 const MAX_LIVE_CHILDREN = 20;
-const DEFAULT_MAX_TURNS = 50;
 const DEFAULT_MAX_COST_USD = 5;
 
 // Every await on a child is bounded. A parent tool that blocks forever on a
@@ -251,16 +250,12 @@ function registerChildTools(pi: ExtensionAPI) {
     name: 'message_parent',
     label: 'Message Parent',
     description: [
-      'Send a message to the parent agent that dispatched you.',
-      'Use it to report a blocking ambiguity, surface a finding the parent needs before you finish,',
-      'or ask a question. The parent sees the message asynchronously and may reply by injecting a',
-      'message into your context',
+      'Send a message to the parent agent that dispatched you. The parent sees it',
+      'asynchronously and may reply by injecting a message into your context.',
     ].join(' '),
-    promptSnippet:
-      'Send a message or question to the parent agent that dispatched you',
+    promptSnippet: 'Send a message or question to the parent agent',
     promptGuidelines: [
-      "Use message_parent when a decision is genuinely the parent's to make, not for routine progress narration.",
-      'Set expects_reply on message_parent only when you cannot make useful progress without an answer.',
+      "Use message_parent when a decision is genuinely the parent's to make.",
     ],
     parameters: Type.Object({
       message: Type.String({
@@ -330,8 +325,6 @@ interface SpawnSpec {
   name?: string;
   system_prompt?: string;
   model?: string;
-  max_turns?: number;
-  max_cost_usd?: number;
 }
 
 class Subagent {
@@ -339,7 +332,6 @@ class Subagent {
   readonly task: string;
   readonly logPath: string;
   readonly startedAt = Date.now();
-  readonly maxTurns: number;
   readonly maxCostUsd: number;
 
   proc?: ChildProcess;
@@ -380,14 +372,7 @@ class Subagent {
     this.name = name;
     this.task = spec.task;
     this.logPath = logPath;
-    this.maxTurns = Math.max(
-      1,
-      Math.min(spec.max_turns ?? DEFAULT_MAX_TURNS, 500),
-    );
-    this.maxCostUsd = Math.max(
-      0.01,
-      Math.min(spec.max_cost_usd ?? DEFAULT_MAX_COST_USD, 100),
-    );
+    this.maxCostUsd = DEFAULT_MAX_COST_USD;
   }
 
   get alive(): boolean {
@@ -647,8 +632,6 @@ class Subagent {
       }
       case 'turn_start':
         this.turns++;
-        if (this.turns > this.maxTurns)
-          this.breachBudget(`turn limit ${this.maxTurns} exceeded`);
         return;
       case 'message_start': {
         if (event.message?.role !== 'user') return;
@@ -659,7 +642,9 @@ class Subagent {
             waiter.settle('delivered');
           }
         }
-        this.record('user', firstLine(stripSentinel(text)));
+        // Kept whole: the attach view wraps this as prose, and firstLine's
+        // default clipped the task down to 160 characters before it got there.
+        this.record('user', cap(stripSentinel(text), 4_000));
         return;
       }
       case 'message_end': {
@@ -830,6 +815,7 @@ let parentBusy = false;
 // Open attach views re-render from here: a child's records only change when its
 // stdout produces an event, so there is nothing to poll.
 const attachListeners = new Set<() => void>();
+const spokeWaiters = new Set<(name: string) => void>();
 function notifyAttach() {
   for (const fn of attachListeners) {
     try {
@@ -878,6 +864,10 @@ function emitNews(child: Subagent, kind: NewsKind, text: string) {
   // waking polite.
   const wake = kind === 'finished' || kind === 'died';
   mailbox.push({ kind, name: child.name, at: Date.now(), text, wake });
+  // A subagent that asks a question goes quiet waiting for the answer. If the
+  // parent is sitting in subagent_wait, both stall until the timeout, so a
+  // subagent speaking has to break the wait just as settling does.
+  if (kind === 'spoke') for (const w of [...spokeWaiters]) w(child.name);
   scheduleFlush();
 }
 
@@ -905,15 +895,8 @@ function noteFileTouch(child: Subagent, filePath: string) {
 }
 
 function renderNews(items: News[]): string {
-  const lines = items.map((n) => {
-    const child = fleet.get(n.name);
-    const meta = child
-      ? ` (${child.turns} turns, ${fmtCost(child.costUsd)})`
-      : '';
-    return `${n.kind.padEnd(8)} ${n.name}${meta}: ${n.text}`;
-  });
-  const body = cap(lines.join('\n\n'), NEWS_CAP);
-  return `Subagent news:\n\n${body}\n\nUse subagent_log for detail, subagent_send to reply, subagent_status for the fleet.`;
+  const lines = items.map((n) => `${n.kind.padEnd(8)} ${n.name}: ${n.text}`);
+  return cap(lines.join('\n\n'), NEWS_CAP);
 }
 
 function scheduleFlush(delayMs = 400) {
@@ -1231,7 +1214,6 @@ function renderLog(
     '',
     `Full event log (JSONL, one record per line): ${child.logPath}`,
     child.sessionFile ? `Child session: ${child.sessionFile}` : '',
-    'For anything larger than this view, grep the log file instead of raising limit.',
   ]
     .filter(Boolean)
     .join('\n');
@@ -1286,16 +1268,12 @@ function registerParentTools(pi: ExtensionAPI) {
     name: 'subagent_spawn',
     label: 'Spawn Subagents',
     description: [
-      'Start one or more subagents which are a copy of you, each in its own pi process with its own context window.',
-      'Each subagent sees none of this conversation, so every task must be self-contained,',
-      'the constraints, and exactly what you want reported back.',
-      `At most ${MAX_LIVE_CHILDREN} subagents may be alive at once.`,
+      'Start one or more subagents, each a copy of you in its own process with its own context window.',
+      'A subagent sees none of this conversation, so each task must be self-contained.',
     ].join(' '),
-    promptSnippet:
-      'Start background subagents on self-contained tasks; returns immediately',
+    promptSnippet: 'Start background subagents on self-contained tasks',
     promptGuidelines: [
-      'Use subagent_spawn for open-ended recon or long-running work whose intermediate output would bloat this context; pass several entries in one call to fan out.',
-      'Do not poll subagent_status after subagent_spawn; a finished subagent resumes this session on its own and delivers its result to you.',
+      'Use subagent_spawn to fan out work whose intermediate output would bloat this context; subagents report back on their own.',
     ],
     parameters: Type.Object({
       agents: Type.Array(
@@ -1321,16 +1299,6 @@ function registerParentTools(pi: ExtensionAPI) {
                 "provider/id override; defaults to this session's model",
             }),
           ),
-          max_turns: Type.Optional(
-            Type.Number({
-              description: `Turn budget, default ${DEFAULT_MAX_TURNS}`,
-            }),
-          ),
-          max_cost_usd: Type.Optional(
-            Type.Number({
-              description: `Cost budget in USD, default ${DEFAULT_MAX_COST_USD}`,
-            }),
-          ),
         }),
         { description: 'One entry per subagent; all start in parallel' },
       ),
@@ -1345,7 +1313,7 @@ function registerParentTools(pi: ExtensionAPI) {
       if (liveCount + specs.length > MAX_LIVE_CHILDREN) {
         return textResult(
           `Refusing to spawn: ${liveCount} subagent(s) already alive and the cap is ${MAX_LIVE_CHILDREN}. ` +
-            `Stop finished ones with subagent_stop, or spawn fewer.`,
+            `Stop finished ones with subagent_stop.`,
         );
       }
 
@@ -1368,11 +1336,7 @@ function registerParentTools(pi: ExtensionAPI) {
       return textResult(
         [
           `Started ${started.length} subagent(s): ${started.join(', ')}.`,
-          '',
-          'They are running in the background. Do NOT poll subagent_status in a loop and do NOT call',
-          'subagent_wait unless you genuinely have nothing else to do — results are delivered to you',
-          'automatically when each subagent finishes or has something to say.',
-          'Continue with other work now.',
+          'They report back on their own.',
         ].join('\n'),
         { started },
       );
@@ -1383,15 +1347,11 @@ function registerParentTools(pi: ExtensionAPI) {
     name: 'subagent_send',
     label: 'Message Subagent',
     description: [
-      "Send a message to a running subagent. It is injected at the subagent's next safe point:",
-      'immediately if the subagent is idle, otherwise after its current turn finishes its tool calls.',
-      'Returns once the subagent has actually taken the message into its context, or with a clear',
-      "non-delivery reason. It does NOT wait for the subagent's answer — that arrives as news later.",
+      'Send a message to a subagent. Returns once the subagent has taken it into context,',
+      "not when it answers; the answer arrives later as news.",
     ].join(' '),
-    promptSnippet: 'Send a steering message or reply to a running subagent',
-    promptGuidelines: [
-      'Use subagent_send to redirect or answer a subagent rather than stopping and respawning it.',
-    ],
+    promptSnippet: 'Send a message or reply to a running subagent',
+    promptGuidelines: [],
     parameters: Type.Object({
       name: Type.String({ description: 'Subagent handle' }),
       message: Type.String({
@@ -1519,14 +1479,11 @@ function registerParentTools(pi: ExtensionAPI) {
     name: 'subagent_wait',
     label: 'Wait For Subagents',
     description: [
-      'Block until subagents go idle or exit, up to a timeout. Use this ONLY when you have nothing else to do;',
-      'otherwise just continue working and let news reach you. A timeout is a normal outcome, not a failure.',
+      'Block until subagents settle or one messages you, up to a timeout.',
+      'A timeout is a normal outcome, not a failure.',
     ].join(' '),
-    promptSnippet:
-      'Wait for running subagents to settle, with a required timeout',
-    promptGuidelines: [
-      'Use subagent_wait instead of polling subagent_status in a loop; never call subagent_status repeatedly to simulate waiting.',
-    ],
+    promptSnippet: 'Wait for running subagents to settle',
+    promptGuidelines: [],
     parameters: Type.Object({
       names: Type.Optional(
         Type.Array(Type.String(), {
@@ -1564,20 +1521,38 @@ function registerParentTools(pi: ExtensionAPI) {
           ? Promise.all(settles).then(() => undefined)
           : Promise.race(settles);
 
-      const result = await withDeadline<'settled' | 'timeout' | 'aborted'>(
-        combined.then(() => 'settled' as const),
-        timeoutMs,
-        () => 'timeout',
-        signal,
-        () => 'aborted',
-      );
+      const names = new Set(targets.map((c) => c.name));
+      let spokeWaiter: ((name: string) => void) | undefined;
+      const spoke = new Promise<'spoke'>((resolve) => {
+        spokeWaiter = (name: string) => {
+          if (names.has(name)) resolve('spoke');
+        };
+        spokeWaiters.add(spokeWaiter);
+      });
+
+      let result: 'settled' | 'spoke' | 'timeout' | 'aborted';
+      try {
+        result = await withDeadline<
+          'settled' | 'spoke' | 'timeout' | 'aborted'
+        >(
+          Promise.race([combined.then(() => 'settled' as const), spoke]),
+          timeoutMs,
+          () => 'timeout',
+          signal,
+          () => 'aborted',
+        );
+      } finally {
+        if (spokeWaiter) spokeWaiters.delete(spokeWaiter);
+      }
 
       // Drain so the same news is not also delivered as a steer.
       const news = drainMailbox(new Set(targets.map((c) => c.name)));
       const header =
         result === 'settled'
           ? `Wait satisfied (${until}).`
-          : result === 'aborted'
+          : result === 'spoke'
+            ? 'A subagent sent you a message. Answer it with subagent_send if it is waiting on you.'
+            : result === 'aborted'
             ? 'Wait cancelled. The subagents are still running — nothing was stopped.'
             : `Timed out after ${timeoutMs / 1000}s. This is NOT an error: the subagents below are still running normally. Do not stop them for this reason.`;
 
@@ -1597,9 +1572,8 @@ function registerParentTools(pi: ExtensionAPI) {
     name: 'subagent_log',
     label: 'Subagent Log',
     description: [
-      "Inspect what a subagent has been doing. 'outline' is one line per event with tool calls digested,",
-      "'transcript' is the same with untruncated lines, 'final' is just the last assistant message.",
-      'The result footer names the on-disk JSONL log; grep that instead of asking for a bigger limit.',
+      "Read what a subagent has been doing. 'outline' is one line per event,",
+      "'transcript' the same untruncated, 'final' just its last message.",
     ].join(' '),
     promptSnippet:
       "Read a subagent's activity outline, transcript, or final message",
@@ -1658,7 +1632,7 @@ function registerParentTools(pi: ExtensionAPI) {
       );
       const lines = [...fleet.values()].map(childLine);
       return textResult(
-        `${lines.join('\n')}\n\nUse subagent_log(name) for detail.`,
+        lines.join('\n'),
       );
     },
   });
@@ -1970,7 +1944,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
       )
       .join(' ');
     return {
-      systemPrompt: `${event.systemPrompt}\n\nSubagents alive: ${roster}. Use subagent_status/subagent_log/subagent_send.`,
+      systemPrompt: `${event.systemPrompt}\n\nSubagents alive: ${roster}`,
     };
   });
 
