@@ -80,6 +80,7 @@ in
   # leaves no room to drop a nix-built extension in beside the repo's own. pi
   # auto-discovers everything here, so nothing needs an entry in settings.json.
   home.file.".pi/agent/extensions/clear.ts".source = ../../config/pi/extensions/clear.ts;
+  home.file.".pi/agent/extensions/subagent.ts".source = ../../config/pi/extensions/subagent.ts;
   home.file.".pi/agent/extensions/pi-provider-litellm".source =
     "${pkgs.callPackage ../pi-provider-litellm.nix { }}/lib/pi-provider-litellm";
 

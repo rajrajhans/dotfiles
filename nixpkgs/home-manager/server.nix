@@ -67,6 +67,7 @@ in
   home.file.".local/bin/syscheck" = { source = ../../scripts/syscheck; executable = true; };
 
   home.file.".pi/agent/extensions/clear.ts".source = ../../config/pi/extensions/clear.ts;
+  home.file.".pi/agent/extensions/subagent.ts".source = ../../config/pi/extensions/subagent.ts;
   home.file.".pi/agent/extensions/pi-provider-litellm".source =
     "${pkgs.callPackage ../pi-provider-litellm.nix { }}/lib/pi-provider-litellm";
 
