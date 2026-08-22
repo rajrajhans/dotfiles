@@ -66,7 +66,9 @@ in
   home.file.".local/bin/statusline.sh".source = "${pkgs.callPackage ../statusline.nix { }}/bin/statusline.sh";
   home.file.".local/bin/syscheck" = { source = ../../scripts/syscheck; executable = true; };
 
-  home.file.".pi/agent/extensions".source = ../../config/pi/extensions;
+  home.file.".pi/agent/extensions/clear.ts".source = ../../config/pi/extensions/clear.ts;
+  home.file.".pi/agent/extensions/pi-provider-litellm".source =
+    "${pkgs.callPackage ../pi-provider-litellm.nix { }}/lib/pi-provider-litellm";
 
   # Enable direnv for project-specific environments
   programs.direnv.enable = true;

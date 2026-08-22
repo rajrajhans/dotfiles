@@ -76,7 +76,12 @@ in
   home.file.".iex.exs".source = ../../config/iex.exs;
   home.file.".duti".source = ../../config/duti;
 
-  home.file.".pi/agent/extensions".source = ../../config/pi/extensions;
+  # Linked per-entry, not as one directory link: a whole-dir link into the store
+  # leaves no room to drop a nix-built extension in beside the repo's own. pi
+  # auto-discovers everything here, so nothing needs an entry in settings.json.
+  home.file.".pi/agent/extensions/clear.ts".source = ../../config/pi/extensions/clear.ts;
+  home.file.".pi/agent/extensions/pi-provider-litellm".source =
+    "${pkgs.callPackage ../pi-provider-litellm.nix { }}/lib/pi-provider-litellm";
 
   # Provide oh-my-zsh as a read-only symlink into the nix store.
   # ZSH_COMPDUMP is overridden in zshrc to keep the completion cache writable.
