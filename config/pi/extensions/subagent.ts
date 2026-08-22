@@ -1,21 +1,28 @@
-import { type ChildProcess, execFileSync, spawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-import { StringDecoder } from "node:string_decoder";
-import { StringEnum } from "@earendil-works/pi-ai";
-import { type ExtensionAPI, type ExtensionContext, getAgentDir } from "@earendil-works/pi-coding-agent";
-import { Text } from "@earendil-works/pi-tui";
-import { Type } from "typebox";
+import { type ChildProcess, execFileSync, spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import { StringDecoder } from 'node:string_decoder';
+import { StringEnum } from '@earendil-works/pi-ai';
+import {
+  type ExtensionAPI,
+  type ExtensionContext,
+  getAgentDir,
+} from '@earendil-works/pi-coding-agent';
+import { Text } from '@earendil-works/pi-tui';
+import { Type } from 'typebox';
 
 // Subagents are long-lived `pi --mode rpc` peers. A child auto-discovers this
 // same extension, so the depth counter is the recursion guard: a counter rather
 // than a boolean keeps the invariant inspectable from `env` inside a child.
-const DEPTH_ENV = "PI_SUBAGENT_DEPTH";
-const NAME_ENV = "PI_SUBAGENT_NAME";
+const DEPTH_ENV = 'PI_SUBAGENT_DEPTH';
+const NAME_ENV = 'PI_SUBAGENT_NAME';
 
-const MAX_LIVE_CHILDREN = 4;
+// A ceiling rather than a tuned number: the real guards on runaway fan-out are
+// the per-child turn and cost budgets below. This only exists so a confused
+// parent emitting spawn calls in a loop cannot open an unbounded fleet.
+const MAX_LIVE_CHILDREN = 20;
 const DEFAULT_MAX_TURNS = 50;
 const DEFAULT_MAX_COST_USD = 5;
 
@@ -49,21 +56,21 @@ function attachJsonlLineReader(
   onLine: (line: string) => void,
   onOversized?: () => void,
 ): () => void {
-  const decoder = new StringDecoder("utf8");
-  let buffer = "";
+  const decoder = new StringDecoder('utf8');
+  let buffer = '';
   const emitLine = (line: string) => {
-    onLine(line.endsWith("\r") ? line.slice(0, -1) : line);
+    onLine(line.endsWith('\r') ? line.slice(0, -1) : line);
   };
   const onData = (chunk: Buffer | string) => {
-    buffer += typeof chunk === "string" ? chunk : decoder.write(chunk);
+    buffer += typeof chunk === 'string' ? chunk : decoder.write(chunk);
     while (true) {
-      const newlineIndex = buffer.indexOf("\n");
+      const newlineIndex = buffer.indexOf('\n');
       if (newlineIndex === -1) break;
       emitLine(buffer.slice(0, newlineIndex));
       buffer = buffer.slice(newlineIndex + 1);
     }
     if (buffer.length > MAX_LINE_BYTES) {
-      buffer = "";
+      buffer = '';
       onOversized?.();
     }
   };
@@ -71,14 +78,14 @@ function attachJsonlLineReader(
     buffer += decoder.end();
     if (buffer.length > 0) {
       emitLine(buffer);
-      buffer = "";
+      buffer = '';
     }
   };
-  stream.on("data", onData);
-  stream.on("end", onEnd);
+  stream.on('data', onData);
+  stream.on('end', onEnd);
   return () => {
-    stream.off("data", onData);
-    stream.off("end", onEnd);
+    stream.off('data', onData);
+    stream.off('end', onEnd);
   };
 }
 
@@ -88,7 +95,7 @@ function attachJsonlLineReader(
 // check rejects bun's virtual single-file-executable path, which does not exist.
 function getPiInvocation(args: string[]): { command: string; args: string[] } {
   const currentScript = process.argv[1];
-  const isBunVirtualScript = currentScript?.startsWith("/$bunfs/root/");
+  const isBunVirtualScript = currentScript?.startsWith('/$bunfs/root/');
   if (currentScript && !isBunVirtualScript && fs.existsSync(currentScript)) {
     return { command: process.execPath, args: [currentScript, ...args] };
   }
@@ -97,7 +104,7 @@ function getPiInvocation(args: string[]): { command: string; args: string[] } {
   const isGenericRuntime = /^(node|bun)(\.exe)?$/.test(execName);
   if (!isGenericRuntime) return { command: process.execPath, args };
 
-  return { command: "pi", args };
+  return { command: 'pi', args };
 }
 
 function cap(text: string, limit: number): string {
@@ -106,7 +113,7 @@ function cap(text: string, limit: number): string {
 }
 
 function firstLine(text: string, limit = 160): string {
-  const line = text.replace(/\s+/g, " ").trim();
+  const line = text.replace(/\s+/g, ' ').trim();
   return line.length > limit ? `${line.slice(0, limit)}…` : line;
 }
 
@@ -123,33 +130,76 @@ function fmtCost(n: number): string {
 }
 
 const STOPWORDS = new Set([
-  "the", "a", "an", "and", "or", "to", "of", "in", "on", "for", "with", "this", "that", "is", "are",
-  "be", "please", "then", "from", "into", "using", "use", "all", "any", "it", "its", "by", "at", "as",
-  "we", "you", "your", "my", "our", "make", "do", "find", "out", "should", "can", "not", "but",
+  'the',
+  'a',
+  'an',
+  'and',
+  'or',
+  'to',
+  'of',
+  'in',
+  'on',
+  'for',
+  'with',
+  'this',
+  'that',
+  'is',
+  'are',
+  'be',
+  'please',
+  'then',
+  'from',
+  'into',
+  'using',
+  'use',
+  'all',
+  'any',
+  'it',
+  'its',
+  'by',
+  'at',
+  'as',
+  'we',
+  'you',
+  'your',
+  'my',
+  'our',
+  'make',
+  'do',
+  'find',
+  'out',
+  'should',
+  'can',
+  'not',
+  'but',
 ]);
 
 function kebab(raw: string): string {
   return raw
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
     .slice(0, 40);
 }
 
 // Names derive from the task so a handle is self-documenting in the roster line
 // and in the log filenames; a random word list would not be.
-function deriveName(task: string, taken: Set<string>, explicit?: string): string {
-  let base = explicit ? kebab(explicit) : "";
+function deriveName(
+  task: string,
+  taken: Set<string>,
+  explicit?: string,
+): string {
+  let base = explicit ? kebab(explicit) : '';
   if (!base) {
     const words = task
       .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/[^a-z0-9\s]/g, ' ')
       .split(/\s+/)
       .filter((w) => w.length > 2 && !STOPWORDS.has(w))
       .slice(0, 3);
-    base = kebab(words.join("-"));
+    base = kebab(words.join('-'));
   }
-  if (!base) base = "agent";
+  if (!base) base = 'agent';
   if (!taken.has(base)) return base;
   for (let i = 2; i < 100; i++) {
     const candidate = `${base}-${i}`;
@@ -163,7 +213,7 @@ function isAlive(pid: number): boolean {
     process.kill(pid, 0);
     return true;
   } catch (err) {
-    return (err as NodeJS.ErrnoException).code === "EPERM";
+    return (err as NodeJS.ErrnoException).code === 'EPERM';
   }
 }
 
@@ -174,10 +224,18 @@ function isAlive(pid: number): boolean {
 // interactive pi has a real shell as its parent.
 function looksLikeOrphanedChild(pid: number): boolean {
   try {
-    const out = execFileSync("ps", ["-p", String(pid), "-o", "ppid=,command="], { timeout: 2000 }).toString().trim();
+    const out = execFileSync(
+      'ps',
+      ['-p', String(pid), '-o', 'ppid=,command='],
+      { timeout: 2000 },
+    )
+      .toString()
+      .trim();
     const [ppid, ...rest] = out.split(/\s+/);
-    const command = rest.join(" ");
-    const isPi = /(^|[/\\])pi$/.test(rest[0] ?? "") || (command.includes("--mode") && command.includes("rpc"));
+    const command = rest.join(' ');
+    const isPi =
+      /(^|[/\\])pi$/.test(rest[0] ?? '') ||
+      (command.includes('--mode') && command.includes('rpc'));
     return isPi && Number(ppid) === 1;
   } catch {
     return false;
@@ -190,31 +248,36 @@ function looksLikeOrphanedChild(pid: number): boolean {
 
 function registerChildTools(pi: ExtensionAPI) {
   pi.registerTool({
-    name: "message_parent",
-    label: "Message Parent",
+    name: 'message_parent',
+    label: 'Message Parent',
     description: [
-      "Send a message to the parent agent that dispatched you.",
-      "Use it to report a blocking ambiguity, surface a finding the parent needs before you finish,",
-      "or ask a question. The parent sees the message asynchronously and may reply by injecting a",
-      "message into your context; it may also never reply. Do not wait for a reply.",
-    ].join(" "),
-    promptSnippet: "Send a message or question to the parent agent that dispatched you",
+      'Send a message to the parent agent that dispatched you.',
+      'Use it to report a blocking ambiguity, surface a finding the parent needs before you finish,',
+      'or ask a question. The parent sees the message asynchronously and may reply by injecting a',
+      'message into your context',
+    ].join(' '),
+    promptSnippet:
+      'Send a message or question to the parent agent that dispatched you',
     promptGuidelines: [
       "Use message_parent when a decision is genuinely the parent's to make, not for routine progress narration.",
-      "Set expects_reply on message_parent only when you cannot make useful progress without an answer.",
+      'Set expects_reply on message_parent only when you cannot make useful progress without an answer.',
     ],
     parameters: Type.Object({
-      message: Type.String({ description: "Self-contained message; the parent does not see your transcript" }),
+      message: Type.String({
+        description:
+          'Self-contained message; the parent does not see your transcript',
+      }),
       expects_reply: Type.Boolean({
-        description: "True if you are blocked without an answer; false if this is informational",
+        description:
+          'True if you are blocked without an answer; false if this is informational',
       }),
     }),
     async execute(_toolCallId, params) {
       const tail = params.expects_reply
-        ? "The parent may reply by injecting a message into your context. Keep making progress on anything that does not depend on the answer."
-        : "No reply is expected. Continue.";
+        ? 'The parent may reply by injecting a message into your context. Keep making progress on anything that does not depend on the answer.'
+        : 'No reply is expected. Continue.';
       return {
-        content: [{ type: "text", text: `Delivered to parent.\n${tail}` }],
+        content: [{ type: 'text', text: `Delivered to parent.\n${tail}` }],
         details: { expects_reply: params.expects_reply },
       };
     },
@@ -226,23 +289,23 @@ function registerChildTools(pi: ExtensionAPI) {
 // ---------------------------------------------------------------------------
 
 const KEEP_EVENTS = new Set([
-  "agent_start",
-  "agent_settled",
-  "turn_start",
-  "turn_end",
-  "message_start",
-  "message_end",
-  "tool_execution_start",
-  "tool_execution_end",
-  "queue_update",
-  "extension_error",
-  "extension_ui_request",
-  "compaction_start",
-  "response",
+  'agent_start',
+  'agent_settled',
+  'turn_start',
+  'turn_end',
+  'message_start',
+  'message_end',
+  'tool_execution_start',
+  'tool_execution_end',
+  'queue_update',
+  'extension_error',
+  'extension_ui_request',
+  'compaction_start',
+  'response',
 ]);
 
 type LogRecord = { t: number; kind: string; text: string };
-type NewsKind = "finished" | "spoke" | "died" | "stalled" | "conflict";
+type NewsKind = 'finished' | 'spoke' | 'died' | 'stalled' | 'conflict';
 interface News {
   kind: NewsKind;
   name: string;
@@ -251,7 +314,12 @@ interface News {
   wake: boolean;
 }
 
-type AckOutcome = "delivered" | "child_exited" | "timeout" | "aborted" | "not_delivered";
+type AckOutcome =
+  | 'delivered'
+  | 'child_exited'
+  | 'timeout'
+  | 'aborted'
+  | 'not_delivered';
 interface AckWaiter {
   settle: (outcome: AckOutcome) => void;
   armed: boolean;
@@ -262,7 +330,6 @@ interface SpawnSpec {
   name?: string;
   system_prompt?: string;
   model?: string;
-  on_complete?: "notify" | "wake";
   max_turns?: number;
   max_cost_usd?: number;
 }
@@ -272,18 +339,17 @@ class Subagent {
   readonly task: string;
   readonly logPath: string;
   readonly startedAt = Date.now();
-  readonly onComplete: "notify" | "wake";
   readonly maxTurns: number;
   readonly maxCostUsd: number;
 
   proc?: ChildProcess;
-  state: "starting" | "working" | "idle" | "exited" = "starting";
+  state: 'starting' | 'working' | 'idle' | 'exited' = 'starting';
   lastActivityAt = Date.now();
   turns = 0;
   costUsd = 0;
   contextPercent?: number;
   currentTool?: string;
-  lastText = "";
+  lastText = '';
   exitCode?: number | null;
   exitSignal?: NodeJS.Signals | null;
   stopping = false;
@@ -294,11 +360,18 @@ class Subagent {
 
   private readonly records: LogRecord[] = [];
   private readonly acks = new Map<string, AckWaiter>();
-  private readonly pending = new Map<string, { resolve: (v: any) => void; reject: (e: Error) => void; timer: NodeJS.Timeout }>();
+  private readonly pending = new Map<
+    string,
+    {
+      resolve: (v: any) => void;
+      reject: (e: Error) => void;
+      timer: NodeJS.Timeout;
+    }
+  >();
   private readonly exitWaiters = new Set<() => void>();
   private readonly settleWaiters = new Set<() => void>();
   private sendChain: Promise<unknown> = Promise.resolve();
-  private stderrRing = "";
+  private stderrRing = '';
   private logStream?: fs.WriteStream;
   private tmpDir?: string;
   private ranSinceSettle = false;
@@ -307,56 +380,78 @@ class Subagent {
     this.name = name;
     this.task = spec.task;
     this.logPath = logPath;
-    this.onComplete = spec.on_complete ?? "notify";
-    this.maxTurns = Math.max(1, Math.min(spec.max_turns ?? DEFAULT_MAX_TURNS, 500));
-    this.maxCostUsd = Math.max(0.01, Math.min(spec.max_cost_usd ?? DEFAULT_MAX_COST_USD, 100));
+    this.maxTurns = Math.max(
+      1,
+      Math.min(spec.max_turns ?? DEFAULT_MAX_TURNS, 500),
+    );
+    this.maxCostUsd = Math.max(
+      0.01,
+      Math.min(spec.max_cost_usd ?? DEFAULT_MAX_COST_USD, 100),
+    );
   }
 
   get alive(): boolean {
-    return this.state !== "exited";
+    return this.state !== 'exited';
   }
 
   // -- lifecycle ------------------------------------------------------------
 
-  start(command: string, args: string[], cwd: string, env: NodeJS.ProcessEnv, tmpDir: string) {
+  start(
+    command: string,
+    args: string[],
+    cwd: string,
+    env: NodeJS.ProcessEnv,
+    tmpDir: string,
+  ) {
     this.tmpDir = tmpDir;
     fs.mkdirSync(path.dirname(this.logPath), { recursive: true });
-    this.logStream = fs.createWriteStream(this.logPath, { flags: "a" });
+    this.logStream = fs.createWriteStream(this.logPath, { flags: 'a' });
 
     // stdin MUST be a pipe owned solely by this process: rpc mode exits on stdin
     // EOF, and the write end dies with the parent, so every form of parent death
     // (including SIGKILL, which skips session_shutdown) reaps the child.
     // Never `detached`, never stdio[0] "ignore".
-    const proc = spawn(command, args, { cwd, env, shell: false, stdio: ["pipe", "pipe", "pipe"] });
+    const proc = spawn(command, args, {
+      cwd,
+      env,
+      shell: false,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
     this.proc = proc;
 
-    attachJsonlLineReader(proc.stdout!, (line) => this.onLine(line), () => {
-      this.droppedLines++;
-    });
+    attachJsonlLineReader(
+      proc.stdout!,
+      (line) => this.onLine(line),
+      () => {
+        this.droppedLines++;
+      },
+    );
 
     // An undrained stderr pipe fills at 64KB and blocks the child mid-turn
     // forever. pi rebinds console.log to stderr, so this carries child logging.
-    proc.stderr!.on("data", (chunk: Buffer) => {
-      this.stderrRing = (this.stderrRing + chunk.toString()).slice(-STDERR_RING_BYTES);
+    proc.stderr!.on('data', (chunk: Buffer) => {
+      this.stderrRing = (this.stderrRing + chunk.toString()).slice(
+        -STDERR_RING_BYTES,
+      );
     });
 
-    proc.on("error", (err) => {
-      this.record("error", `spawn failed: ${err.message}`);
+    proc.on('error', (err) => {
+      this.record('error', `spawn failed: ${err.message}`);
       this.onExit(1, null);
     });
-    proc.on("exit", (code, signal) => this.onExit(code, signal));
+    proc.on('exit', (code, signal) => this.onExit(code, signal));
   }
 
   private onExit(code: number | null, signal: NodeJS.Signals | null) {
-    if (this.state === "exited") return;
-    this.state = "exited";
+    if (this.state === 'exited') return;
+    this.state = 'exited';
     this.exitCode = code;
     this.exitSignal = signal;
     this.lastActivityAt = Date.now();
-    this.record("exit", `exit code=${code} signal=${signal}`);
+    this.record('exit', `exit code=${code} signal=${signal}`);
     this.logStream?.end();
 
-    for (const [, waiter] of this.acks) waiter.settle("child_exited");
+    for (const [, waiter] of this.acks) waiter.settle('child_exited');
     this.acks.clear();
     for (const [, p] of this.pending) {
       clearTimeout(p.timer);
@@ -372,11 +467,12 @@ class Subagent {
     // back to treating the argument as literal text when the path is gone, so a
     // child that reloads resources after deletion would append the literal tmp
     // path to its own system prompt.
-    if (this.tmpDir) fs.rm(this.tmpDir, { recursive: true, force: true }, () => {});
+    if (this.tmpDir)
+      fs.rm(this.tmpDir, { recursive: true, force: true }, () => {});
   }
 
   async stop(): Promise<void> {
-    if (!this.proc || this.state === "exited") return;
+    if (!this.proc || this.state === 'exited') return;
     this.stopping = true;
     const proc = this.proc;
     try {
@@ -385,12 +481,12 @@ class Subagent {
     const done = this.waitForExit();
     const term = setTimeout(() => {
       try {
-        proc.kill("SIGTERM");
+        proc.kill('SIGTERM');
       } catch {}
     }, TERM_GRACE_MS);
     const kill = setTimeout(() => {
       try {
-        proc.kill("SIGKILL");
+        proc.kill('SIGKILL');
       } catch {}
     }, KILL_GRACE_MS);
     await done;
@@ -399,12 +495,13 @@ class Subagent {
   }
 
   waitForExit(): Promise<void> {
-    if (this.state === "exited") return Promise.resolve();
+    if (this.state === 'exited') return Promise.resolve();
     return new Promise((resolve) => this.exitWaiters.add(resolve));
   }
 
   waitForSettle(): Promise<void> {
-    if (this.state === "exited" || this.state === "idle") return Promise.resolve();
+    if (this.state === 'exited' || this.state === 'idle')
+      return Promise.resolve();
     return new Promise((resolve) => this.settleWaiters.add(resolve));
   }
 
@@ -412,28 +509,39 @@ class Subagent {
 
   // The reader is fire-and-forget, so back-to-back commands would interleave
   // across await points. One command in flight per child, always correlated.
-  send(type: string, extra: Record<string, unknown> = {}, timeoutMs = COMMAND_TIMEOUT_MS, signal?: AbortSignal): Promise<any> {
+  send(
+    type: string,
+    extra: Record<string, unknown> = {},
+    timeoutMs = COMMAND_TIMEOUT_MS,
+    signal?: AbortSignal,
+  ): Promise<any> {
     const run = async () => {
-      if (signal?.aborted) throw new Error("cancelled");
-      if (this.state === "exited" || !this.proc?.stdin?.writable) {
+      if (signal?.aborted) throw new Error('cancelled');
+      if (this.state === 'exited' || !this.proc?.stdin?.writable) {
         throw new Error(`subagent ${this.name} is not running`);
       }
       const id = randomUUID();
       const promise = new Promise<any>((resolve, reject) => {
         const fail = (msg: string) => {
           this.pending.delete(id);
-          signal?.removeEventListener("abort", onAbort);
+          signal?.removeEventListener('abort', onAbort);
           reject(new Error(msg));
         };
-        const timer = setTimeout(() => fail(`subagent ${this.name}: ${type} timed out after ${timeoutMs}ms`), timeoutMs);
+        const timer = setTimeout(
+          () =>
+            fail(
+              `subagent ${this.name}: ${type} timed out after ${timeoutMs}ms`,
+            ),
+          timeoutMs,
+        );
         const onAbort = () => {
           clearTimeout(timer);
-          fail("cancelled");
+          fail('cancelled');
         };
-        signal?.addEventListener("abort", onAbort, { once: true });
+        signal?.addEventListener('abort', onAbort, { once: true });
         this.pending.set(id, {
           resolve: (v) => {
-            signal?.removeEventListener("abort", onAbort);
+            signal?.removeEventListener('abort', onAbort);
             resolve(v);
           },
           reject,
@@ -463,7 +571,7 @@ class Subagent {
     } catch {
       return;
     }
-    if (typeof event?.type !== "string" || !KEEP_EVENTS.has(event.type)) return;
+    if (typeof event?.type !== 'string' || !KEEP_EVENTS.has(event.type)) return;
 
     this.lastActivityAt = Date.now();
     try {
@@ -475,105 +583,141 @@ class Subagent {
 
   private handleEvent(event: any) {
     switch (event.type) {
-      case "response": {
+      case 'response': {
         const p = event.id ? this.pending.get(event.id) : undefined;
         if (!p) return;
         clearTimeout(p.timer);
         this.pending.delete(event.id);
-        if (event.success === false) p.reject(new Error(String(event.error ?? "command failed")));
+        if (event.success === false)
+          p.reject(new Error(String(event.error ?? 'command failed')));
         else p.resolve(event.data);
         return;
       }
       // Any child-side extension may call ctx.ui.confirm(); ctx.hasUI is true in
       // rpc mode and createDialogPromise has no default timeout, so an unanswered
       // dialog hangs the child forever. Always decline.
-      case "extension_ui_request": {
-        const method = String(event.method ?? "");
-        if (method === "confirm") this.reply({ type: "extension_ui_response", id: event.id, confirmed: false });
-        else if (method === "select" || method === "input" || method === "editor") {
-          this.reply({ type: "extension_ui_response", id: event.id, cancelled: true });
+      case 'extension_ui_request': {
+        const method = String(event.method ?? '');
+        if (method === 'confirm')
+          this.reply({
+            type: 'extension_ui_response',
+            id: event.id,
+            confirmed: false,
+          });
+        else if (
+          method === 'select' ||
+          method === 'input' ||
+          method === 'editor'
+        ) {
+          this.reply({
+            type: 'extension_ui_response',
+            id: event.id,
+            cancelled: true,
+          });
         }
         return;
       }
-      case "agent_start":
-        this.state = "working";
+      case 'agent_start':
+        this.state = 'working';
         this.ranSinceSettle = true;
         this.stalledReported = false;
-        this.record("run", "run started");
+        this.record('run', 'run started');
         return;
-      case "agent_settled": {
-        this.state = "idle";
+      case 'agent_settled': {
+        this.state = 'idle';
         this.currentTool = undefined;
-        this.record("settled", "run settled");
+        this.record('settled', 'run settled');
         for (const [, waiter] of this.acks) {
           // Armed means the command response was already read, and stdout is
           // ordered, so this settle is strictly after our write. A message still
           // pending here is stranded (B1: nothing will drain the queue again).
-          if (waiter.armed) waiter.settle("not_delivered");
+          if (waiter.armed) waiter.settle('not_delivered');
         }
         for (const w of this.settleWaiters) w();
         this.settleWaiters.clear();
         if (this.ranSinceSettle) {
           this.ranSinceSettle = false;
-          emitNews(this, "finished", this.lastText ? cap(this.lastText, SNIPPET_CAP) : "(no final text)");
+          emitNews(
+            this,
+            'finished',
+            this.lastText ? cap(this.lastText, SNIPPET_CAP) : '(no final text)',
+          );
         }
         return;
       }
-      case "turn_start":
+      case 'turn_start':
         this.turns++;
-        if (this.turns > this.maxTurns) this.breachBudget(`turn limit ${this.maxTurns} exceeded`);
+        if (this.turns > this.maxTurns)
+          this.breachBudget(`turn limit ${this.maxTurns} exceeded`);
         return;
-      case "message_start": {
-        if (event.message?.role !== "user") return;
+      case 'message_start': {
+        if (event.message?.role !== 'user') return;
         const text = contentText(event.message.content);
         for (const [sentinel, waiter] of this.acks) {
           if (text.includes(sentinel)) {
             this.acks.delete(sentinel);
-            waiter.settle("delivered");
+            waiter.settle('delivered');
           }
         }
-        this.record("user", firstLine(stripSentinel(text)));
+        this.record('user', firstLine(stripSentinel(text)));
         return;
       }
-      case "message_end": {
+      case 'message_end': {
         const msg = event.message;
-        if (msg?.role !== "assistant") return;
+        if (msg?.role !== 'assistant') return;
         const cost = msg.usage?.cost?.total;
-        if (typeof cost === "number") this.costUsd += cost;
-        if (this.costUsd > this.maxCostUsd) this.breachBudget(`cost limit ${fmtCost(this.maxCostUsd)} exceeded`);
-        let text = "";
+        if (typeof cost === 'number') this.costUsd += cost;
+        if (this.costUsd > this.maxCostUsd)
+          this.breachBudget(`cost limit ${fmtCost(this.maxCostUsd)} exceeded`);
+        let text = '';
         for (const part of msg.content ?? []) {
-          if (part?.type === "text" && typeof part.text === "string" && part.text.trim()) text = part.text;
+          if (
+            part?.type === 'text' &&
+            typeof part.text === 'string' &&
+            part.text.trim()
+          )
+            text = part.text;
         }
         if (text) {
           this.lastText = text;
-          this.record("assistant", firstLine(text));
+          this.record('assistant', firstLine(text));
         }
         return;
       }
-      case "tool_execution_start": {
-        const tool = String(event.toolName ?? "");
+      case 'tool_execution_start': {
+        const tool = String(event.toolName ?? '');
         this.currentTool = tool;
-        this.record("tool", `${tool} ${argDigest(tool, event.args)}`);
-        if (tool === "message_parent") {
-          const msg = String(event.args?.message ?? "");
+        this.record('tool', `${tool} ${argDigest(tool, event.args)}`);
+        if (tool === 'message_parent') {
+          const msg = String(event.args?.message ?? '');
           const expects = event.args?.expects_reply === true;
-          emitNews(this, "spoke", `${expects ? "(expects reply) " : ""}${cap(msg, SNIPPET_CAP)}`);
+          emitNews(
+            this,
+            'spoke',
+            `${expects ? '(expects reply) ' : ''}${cap(msg, SNIPPET_CAP)}`,
+          );
         }
-        if (tool === "write" || tool === "edit") noteFileTouch(this, String(event.args?.path ?? ""));
+        if (tool === 'write' || tool === 'edit')
+          noteFileTouch(this, String(event.args?.path ?? ''));
         return;
       }
-      case "tool_execution_end": {
+      case 'tool_execution_end': {
         this.currentTool = undefined;
         const text = contentText(event.result?.content);
-        this.record("result", `${event.toolName}${event.isError ? " ERROR" : ""}: ${firstLine(text, 200)}`);
+        this.record(
+          'result',
+          `${event.toolName}${event.isError ? ' ERROR' : ''}: ${firstLine(text, 200)}`,
+        );
         return;
       }
-      case "extension_error":
-        this.record("error", `${event.extensionPath ?? "?"}: ${firstLine(String(event.error ?? ""))}`);
+      case 'extension_error':
+        this.record(
+          'error',
+          `${event.extensionPath ?? '?'}: ${firstLine(String(event.error ?? ''))}`,
+        );
         return;
-      case "compaction_start":
-        this.record("compaction", `compaction (${event.reason ?? "?"})`);
+      case 'compaction_start':
+        this.record('compaction', `compaction (${event.reason ?? '?'})`);
         return;
       default:
         return;
@@ -589,9 +733,13 @@ class Subagent {
   private breachBudget(reason: string) {
     if (this.stopping) return;
     this.stopping = true;
-    this.record("budget", reason);
-    this.send("abort").catch(() => {});
-    emitNews(this, "finished", `budget exceeded: ${reason}\n${cap(this.lastText, SNIPPET_CAP)}`);
+    this.record('budget', reason);
+    this.send('abort').catch(() => {});
+    emitNews(
+      this,
+      'finished',
+      `budget exceeded: ${reason}\n${cap(this.lastText, SNIPPET_CAP)}`,
+    );
     void this.stop();
   }
 
@@ -601,6 +749,7 @@ class Subagent {
     if (this.records.length > EVENT_RING) this.records.shift();
     this.logStream?.write(`${JSON.stringify(rec)}\n`);
     refreshUi();
+    notifyAttach();
   }
 
   getRecords(): LogRecord[] {
@@ -613,7 +762,11 @@ class Subagent {
 
   // -- delivery ack (B1 + B2) ----------------------------------------------
 
-  registerAck(sentinel: string): { promise: Promise<AckOutcome>; arm: () => void; cancel: () => void } {
+  registerAck(sentinel: string): {
+    promise: Promise<AckOutcome>;
+    arm: () => void;
+    cancel: () => void;
+  } {
     let settle!: (o: AckOutcome) => void;
     const promise = new Promise<AckOutcome>((resolve) => {
       let done = false;
@@ -631,31 +784,31 @@ class Subagent {
       arm: () => {
         waiter.armed = true;
       },
-      cancel: () => settle("aborted"),
+      cancel: () => settle('aborted'),
     };
   }
 }
 
 function contentText(content: unknown): string {
-  if (typeof content === "string") return content;
-  if (!Array.isArray(content)) return "";
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
   return content
-    .filter((p: any) => p?.type === "text" && typeof p.text === "string")
+    .filter((p: any) => p?.type === 'text' && typeof p.text === 'string')
     .map((p: any) => p.text)
-    .join("\n");
+    .join('\n');
 }
 
 function stripSentinel(text: string): string {
-  return text.replace(/\[\[sa:[0-9a-f-]+\]\]\s*/i, "");
+  return text.replace(/\[\[sa:[0-9a-f-]+\]\]\s*/i, '');
 }
 
 function argDigest(tool: string, args: any): string {
-  if (!args || typeof args !== "object") return "";
-  if (tool === "bash") return firstLine(String(args.command ?? ""), 120);
-  if (typeof args.path === "string") return args.path;
-  if (typeof args.pattern === "string") return args.pattern;
+  if (!args || typeof args !== 'object') return '';
+  if (tool === 'bash') return firstLine(String(args.command ?? ''), 120);
+  if (typeof args.path === 'string') return args.path;
+  if (typeof args.pattern === 'string') return args.pattern;
   const keys = Object.keys(args).slice(0, 3);
-  return keys.map((k) => `${k}=${firstLine(String(args[k]), 40)}`).join(" ");
+  return keys.map((k) => `${k}=${firstLine(String(args[k]), 40)}`).join(' ');
 }
 
 // ---------------------------------------------------------------------------
@@ -674,7 +827,18 @@ let parentBusy = false;
 // reload, or shutdown) — optional chaining does not help, because uiCtx itself is
 // still non-null. Timers outlive the ctx that scheduled them, so an unguarded
 // access here takes down the whole pi process from a callback nothing awaits.
-function safeUi(): ExtensionContext["ui"] | undefined {
+// Open attach views re-render from here: a child's records only change when its
+// stdout produces an event, so there is nothing to poll.
+const attachListeners = new Set<() => void>();
+function notifyAttach() {
+  for (const fn of attachListeners) {
+    try {
+      fn();
+    } catch {}
+  }
+}
+
+function safeUi(): ExtensionContext['ui'] | undefined {
   try {
     return uiCtx?.ui;
   } catch {
@@ -696,10 +860,10 @@ function safeCwd(): string {
 }
 let shuttingDown = false;
 let lastSpawnAt = 0;
-let registryDir = "";
-let sessionDir = "";
+let registryDir = '';
+let sessionDir = '';
 let api: ExtensionAPI | undefined;
-let cachedAppendSystemPrompt = "";
+let cachedAppendSystemPrompt = '';
 
 function liveChildren(): Subagent[] {
   return [...fleet.values()].filter((c) => c.alive);
@@ -707,14 +871,21 @@ function liveChildren(): Subagent[] {
 
 function emitNews(child: Subagent, kind: NewsKind, text: string) {
   if (shuttingDown) return;
-  const wake = child.onComplete === "wake" && (kind === "finished" || kind === "died");
+  // Always wake the parent on terminal news. This was briefly a per-spawn knob
+  // and the model reliably chose the non-waking value, so a finished subagent
+  // sat silent until the human happened to type — the exact failure the async
+  // design exists to avoid. The editor-busy guard in flushNews is what keeps
+  // waking polite.
+  const wake = kind === 'finished' || kind === 'died';
   mailbox.push({ kind, name: child.name, at: Date.now(), text, wake });
   scheduleFlush();
 }
 
 function noteFileTouch(child: Subagent, filePath: string) {
   if (!filePath) return;
-  const abs = path.isAbsolute(filePath) ? filePath : path.resolve(safeCwd(), filePath);
+  const abs = path.isAbsolute(filePath)
+    ? filePath
+    : path.resolve(safeCwd(), filePath);
   child.filesTouched.add(abs);
   // withFileMutationQueue is per-process and pi's edit is read-modify-write with
   // no mtime check, so two children editing one file silently lose a write with
@@ -723,7 +894,11 @@ function noteFileTouch(child: Subagent, filePath: string) {
   for (const other of fleet.values()) {
     if (other === child || !other.alive) continue;
     if (other.filesTouched.has(abs)) {
-      emitNews(child, "conflict", `${child.name} and ${other.name} both mutated ${abs}`);
+      emitNews(
+        child,
+        'conflict',
+        `${child.name} and ${other.name} both mutated ${abs}`,
+      );
       return;
     }
   }
@@ -732,10 +907,12 @@ function noteFileTouch(child: Subagent, filePath: string) {
 function renderNews(items: News[]): string {
   const lines = items.map((n) => {
     const child = fleet.get(n.name);
-    const meta = child ? ` (${child.turns} turns, ${fmtCost(child.costUsd)})` : "";
+    const meta = child
+      ? ` (${child.turns} turns, ${fmtCost(child.costUsd)})`
+      : '';
     return `${n.kind.padEnd(8)} ${n.name}${meta}: ${n.text}`;
   });
-  const body = cap(lines.join("\n\n"), NEWS_CAP);
+  const body = cap(lines.join('\n\n'), NEWS_CAP);
   return `Subagent news:\n\n${body}\n\nUse subagent_log for detail, subagent_send to reply, subagent_status for the fleet.`;
 }
 
@@ -750,20 +927,36 @@ function flushNews() {
 
   const wake = mailbox.some((n) => n.wake);
   // Waking the parent while the human is mid-sentence would steal their turn.
-  const editorBusy = (safeUi()?.getEditorText?.() ?? "").trim().length > 0;
-  if (!parentBusy && wake && editorBusy) {
+  const editorBusy = (safeUi()?.getEditorText?.() ?? '').trim().length > 0;
+  if (wake && editorBusy) {
     scheduleFlush(5_000);
+    return;
+  }
+  // sendMessage routes on isStreaming BEFORE it looks at triggerTurn: handed to
+  // a streaming parent this becomes agent.steer(), which is only drained if that
+  // run makes another LLM call. A parent that settles first — the common case,
+  // since it typically just announced the spawn and stopped — leaves the news
+  // queued until the human types, which reads as the subagent having silently
+  // done nothing. Wake-worthy news therefore waits for the parent to settle,
+  // where triggerTurn starts a run outright.
+  if (wake && parentBusy) {
+    scheduleFlush(1_000);
     return;
   }
 
   const items = mailbox.splice(0, mailbox.length);
-  const message = { customType: "subagent-news", content: renderNews(items), display: true, details: { items } };
+  const message = {
+    customType: 'subagent-news',
+    content: renderNews(items),
+    display: true,
+    details: { items },
+  };
 
-  // One coalesced steer, never N. pi's default steeringMode is one-at-a-time, so
-  // four steers would land across four parent turns and thrash it.
-  if (parentBusy) api.sendMessage(message, { deliverAs: "steer" });
-  else if (wake) api.sendMessage(message, { deliverAs: "steer", triggerTurn: true });
-  else api.sendMessage(message, { deliverAs: "nextTurn" });
+  // One coalesced delivery, never N. pi's default steeringMode is one-at-a-time,
+  // so four separate steers would land across four parent turns and thrash it.
+  if (wake) api.sendMessage(message, { triggerTurn: true });
+  else if (parentBusy) api.sendMessage(message, { deliverAs: 'steer' });
+  else api.sendMessage(message, { deliverAs: 'nextTurn' });
 }
 
 function drainMailbox(names?: Set<string>): News[] {
@@ -777,12 +970,14 @@ function drainMailbox(names?: Set<string>): News[] {
 
 function childLine(c: Subagent): string {
   const idle = fmtAge(Date.now() - c.lastActivityAt);
-  const where = c.state === "exited"
-    ? `exited(${c.exitSignal ?? c.exitCode})`
-    : c.currentTool
-      ? `tool:${c.currentTool}`
-      : firstLine(c.lastText, 48) || c.state;
-  const ctxPct = c.contextPercent === undefined ? "" : ` ctx${c.contextPercent}%`;
+  const where =
+    c.state === 'exited'
+      ? `exited(${c.exitSignal ?? c.exitCode})`
+      : c.currentTool
+        ? `tool:${c.currentTool}`
+        : firstLine(c.lastText, 48) || c.state;
+  const ctxPct =
+    c.contextPercent === undefined ? '' : ` ctx${c.contextPercent}%`;
   return `${c.name} [${c.state}] t${c.turns} ${fmtCost(c.costUsd)}${ctxPct} idle:${idle} ${where}`;
 }
 
@@ -796,16 +991,16 @@ function refreshUi() {
     if (live.length === 0) {
       if (!uiActive) return;
       uiActive = false;
-      ui.setStatus("subagent", undefined);
-      ui.setWidget("subagent", undefined);
+      ui.setStatus('subagent', undefined);
+      ui.setWidget('subagent', undefined);
       return;
     }
     uiActive = true;
     const cost = [...fleet.values()].reduce((sum, c) => sum + c.costUsd, 0);
-    ui.setStatus("subagent", `subagents: ${live.length} live ${fmtCost(cost)}`);
+    ui.setStatus('subagent', `subagents: ${live.length} live ${fmtCost(cost)}`);
     const rows = live.slice(0, 5).map(childLine);
     if (live.length > 5) rows.push(`… ${live.length - 5} more`);
-    ui.setWidget("subagent", ["── subagents ──", ...rows]);
+    ui.setWidget('subagent', ['── subagents ──', ...rows]);
   }, 500);
 }
 
@@ -820,8 +1015,16 @@ function writeRegistry() {
     fs.mkdirSync(registryDir, { recursive: true });
     const entries = [...fleet.values()]
       .filter((c) => c.alive && c.proc?.pid)
-      .map((c) => ({ name: c.name, pid: c.proc!.pid, startedAt: c.startedAt, logPath: c.logPath }));
-    fs.writeFileSync(path.join(registryDir, "registry.json"), JSON.stringify(entries));
+      .map((c) => ({
+        name: c.name,
+        pid: c.proc!.pid,
+        startedAt: c.startedAt,
+        logPath: c.logPath,
+      }));
+    fs.writeFileSync(
+      path.join(registryDir, 'registry.json'),
+      JSON.stringify(entries),
+    );
   } catch {}
 }
 
@@ -829,7 +1032,7 @@ function writeRegistry() {
 // children keep running, and emergencyTerminalExit/uncaughtCrash skip
 // session_shutdown entirely. Anything the in-process Map lost is reaped here.
 function sweepStaleRegistries() {
-  const root = path.join(getAgentDir(), "subagents");
+  const root = path.join(getAgentDir(), 'subagents');
   let entries: fs.Dirent[];
   try {
     entries = fs.readdirSync(root, { withFileTypes: true });
@@ -843,11 +1046,13 @@ function sweepStaleRegistries() {
     if (isAlive(pid)) continue;
     const dir = path.join(root, entry.name);
     try {
-      const listed = JSON.parse(fs.readFileSync(path.join(dir, "registry.json"), "utf-8")) as Array<{ pid: number }>;
+      const listed = JSON.parse(
+        fs.readFileSync(path.join(dir, 'registry.json'), 'utf-8'),
+      ) as Array<{ pid: number }>;
       for (const item of listed) {
         if (isAlive(item.pid) && looksLikeOrphanedChild(item.pid)) {
           try {
-            process.kill(item.pid, "SIGTERM");
+            process.kill(item.pid, 'SIGTERM');
           } catch {}
         }
       }
@@ -862,61 +1067,93 @@ function sweepStaleRegistries() {
 
 function buildSystemPrompt(spec: SpawnSpec): string {
   const parts = [
-    "You are a subagent invoked by a caller agent, running in your own pi process with your own context window.",
+    'You are a subagent invoked by a caller agent, running in your own pi process with your own context window.',
     "You cannot see the caller's conversation. Your task statement is the whole brief.",
-    "Report substantive findings in your final assistant message; the caller reads that, not your intermediate output.",
-    "Use message_parent to raise a blocking question or a finding the caller needs before you finish.",
-    "You cannot dispatch subagents of your own.",
+    'Report substantive findings in your final assistant message; the caller reads that, not your intermediate output.',
+    'Use message_parent to raise a blocking question or a finding the caller needs before you finish.',
+    'You cannot dispatch subagents of your own.',
   ];
   // --append-system-prompt suppresses discovery of ~/.pi/agent/APPEND_SYSTEM.md
   // and project .pi/APPEND_SYSTEM.md, so the parent's already-resolved append
   // text has to be carried across explicitly or the child silently loses it.
-  const out = [parts.join(" ")];
-  if (cachedAppendSystemPrompt.trim()) out.push(cachedAppendSystemPrompt.trim());
+  const out = [parts.join(' ')];
+  if (cachedAppendSystemPrompt.trim())
+    out.push(cachedAppendSystemPrompt.trim());
   if (spec.system_prompt?.trim()) out.push(spec.system_prompt.trim());
-  return out.join("\n\n");
+  return out.join('\n\n');
 }
 
-async function spawnChild(spec: SpawnSpec, name: string, ctx: ExtensionContext): Promise<Subagent> {
-  const child = new Subagent(spec, name, path.join(registryDir, `${name}.jsonl`));
+async function spawnChild(
+  spec: SpawnSpec,
+  name: string,
+  ctx: ExtensionContext,
+): Promise<Subagent> {
+  const child = new Subagent(
+    spec,
+    name,
+    path.join(registryDir, `${name}.jsonl`),
+  );
   fleet.set(name, child);
 
-  const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "pi-subagent-"));
-  const promptPath = path.join(tmpDir, "append-system-prompt.md");
-  await fs.promises.writeFile(promptPath, buildSystemPrompt(spec), { encoding: "utf-8", mode: 0o600 });
+  const tmpDir = await fs.promises.mkdtemp(
+    path.join(os.tmpdir(), 'pi-subagent-'),
+  );
+  const promptPath = path.join(tmpDir, 'append-system-prompt.md');
+  await fs.promises.writeFile(promptPath, buildSystemPrompt(spec), {
+    encoding: 'utf-8',
+    mode: 0o600,
+  });
 
-  const model = spec.model ?? (ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined);
+  const model =
+    spec.model ??
+    (ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined);
   const args = [
-    "--mode", "rpc",
+    '--mode',
+    'rpc',
     // Child sessions share the parent's cwd and would otherwise pollute the
     // human's /resume picker.
-    "--session-dir", sessionDir || path.join(getAgentDir(), "subagent-sessions", `pid-${process.pid}`),
-    "--name", `subagent-${name}`,
-    "--append-system-prompt", promptPath,
+    '--session-dir',
+    sessionDir ||
+      path.join(getAgentDir(), 'subagent-sessions', `pid-${process.pid}`),
+    '--name',
+    `subagent-${name}`,
+    '--append-system-prompt',
+    promptPath,
   ];
-  if (model) args.push("--model", model);
-  if (ctx.thinkingLevel) args.push("--thinking", ctx.thinkingLevel);
+  if (model) args.push('--model', model);
+  if (ctx.thinkingLevel) args.push('--thinking', ctx.thinkingLevel);
   // A non-interactive child resolving trust for the first time answers "no" and
   // silently loses project .pi/settings.json, extensions, skills and SYSTEM.md.
-  args.push(ctx.isProjectTrusted() ? "--approve" : "--no-approve");
+  args.push(ctx.isProjectTrusted() ? '--approve' : '--no-approve');
 
-  const depth = Number(process.env[DEPTH_ENV] ?? "0") || 0;
+  const depth = Number(process.env[DEPTH_ENV] ?? '0') || 0;
   const invocation = getPiInvocation(args);
-  child.start(invocation.command, invocation.args, ctx.cwd, {
-    ...process.env,
-    [DEPTH_ENV]: String(depth + 1),
-    [NAME_ENV]: name,
-  }, tmpDir);
+  child.start(
+    invocation.command,
+    invocation.args,
+    ctx.cwd,
+    {
+      ...process.env,
+      [DEPTH_ENV]: String(depth + 1),
+      [NAME_ENV]: name,
+    },
+    tmpDir,
+  );
 
   writeRegistry();
-  child.proc?.on("exit", () => {
+  child.proc?.on('exit', () => {
     writeRegistry();
     refreshUi();
     if (!child.stopping) {
-      emitNews(child, "died", `exited code=${child.exitCode} signal=${child.exitSignal}\n${cap(child.stderrTail, 800)}`);
-      safeUi()?.notify(`subagent ${name} crashed`, "error");
+      emitNews(
+        child,
+        'died',
+        `exited code=${child.exitCode} signal=${child.exitSignal}\n${cap(child.stderrTail, 800)}`,
+      );
+      safeUi()?.notify(`subagent ${name} crashed`, 'error');
     }
-    if (liveChildren().length === 0) safeUi()?.notify("all subagents finished", "info");
+    if (liveChildren().length === 0)
+      safeUi()?.notify('all subagents finished', 'info');
   });
 
   void primeChild(child, spec.task);
@@ -928,7 +1165,7 @@ async function primeChild(child: Subagent, task: string) {
   const deadline = Date.now() + STARTUP_TIMEOUT_MS;
   while (Date.now() < deadline && child.alive) {
     try {
-      const state = await child.send("get_state", {}, 5_000);
+      const state = await child.send('get_state', {}, 5_000);
       child.sessionFile = state?.sessionFile;
       break;
     } catch {
@@ -938,24 +1175,35 @@ async function primeChild(child: Subagent, task: string) {
   }
   if (!child.alive) return;
   // Without this, queued messages dribble in one per turn.
-  await child.send("set_steering_mode", { mode: "all" }).catch(() => {});
-  await child.send("prompt", { message: task, streamingBehavior: "steer" }).catch((err) => {
-    child.record("error", `failed to deliver task: ${(err as Error).message}`);
-  });
+  await child.send('set_steering_mode', { mode: 'all' }).catch(() => {});
+  await child
+    .send('prompt', { message: task, streamingBehavior: 'steer' })
+    .catch((err) => {
+      child.record(
+        'error',
+        `failed to deliver task: ${(err as Error).message}`,
+      );
+    });
 }
 
 // ---------------------------------------------------------------------------
 // parent-side: bounded waits
 // ---------------------------------------------------------------------------
 
-function withDeadline<T>(promise: Promise<T>, ms: number, onTimeout: () => T, signal?: AbortSignal, onAbort?: () => T): Promise<T> {
+function withDeadline<T>(
+  promise: Promise<T>,
+  ms: number,
+  onTimeout: () => T,
+  signal?: AbortSignal,
+  onAbort?: () => T,
+): Promise<T> {
   return new Promise<T>((resolve) => {
     let done = false;
     const finish = (v: T) => {
       if (done) return;
       done = true;
       clearTimeout(timer);
-      signal?.removeEventListener("abort", abortHandler);
+      signal?.removeEventListener('abort', abortHandler);
       resolve(v);
     };
     const timer = setTimeout(() => finish(onTimeout()), ms);
@@ -964,7 +1212,7 @@ function withDeadline<T>(promise: Promise<T>, ms: number, onTimeout: () => T, si
       finish((onAbort ?? onTimeout)());
       return;
     }
-    signal?.addEventListener("abort", abortHandler, { once: true });
+    signal?.addEventListener('abort', abortHandler, { once: true });
     promise.then(finish, () => finish(onTimeout()));
   });
 }
@@ -973,45 +1221,60 @@ function withDeadline<T>(promise: Promise<T>, ms: number, onTimeout: () => T, si
 // parent-side: log rendering
 // ---------------------------------------------------------------------------
 
-function renderLog(child: Subagent, view: string, filter: string | undefined, limit: number): string {
+function renderLog(
+  child: Subagent,
+  view: string,
+  filter: string | undefined,
+  limit: number,
+): string {
   const footer = [
-    "",
+    '',
     `Full event log (JSONL, one record per line): ${child.logPath}`,
-    child.sessionFile ? `Child session: ${child.sessionFile}` : "",
-    "For anything larger than this view, grep the log file instead of raising limit.",
-  ].filter(Boolean).join("\n");
+    child.sessionFile ? `Child session: ${child.sessionFile}` : '',
+    'For anything larger than this view, grep the log file instead of raising limit.',
+  ]
+    .filter(Boolean)
+    .join('\n');
 
-  if (view === "final") {
-    return `${child.name} last assistant message:\n\n${cap(child.lastText || "(none)", TOOL_TEXT_CAP)}\n${footer}`;
+  if (view === 'final') {
+    return `${child.name} last assistant message:\n\n${cap(child.lastText || '(none)', TOOL_TEXT_CAP)}\n${footer}`;
   }
 
   let records = child.getRecords();
   if (filter) {
     const needle = filter.toLowerCase();
-    records = records.filter((r) => r.text.toLowerCase().includes(needle) || r.kind.includes(needle));
+    records = records.filter(
+      (r) => r.text.toLowerCase().includes(needle) || r.kind.includes(needle),
+    );
   }
   const shown = records.slice(-limit);
-  const lines = shown.map((r) => `[+${fmtAge(r.t)}] ${r.kind.padEnd(10)} ${view === "transcript" ? r.text : firstLine(r.text, 140)}`);
+  const lines = shown.map(
+    (r) =>
+      `[+${fmtAge(r.t)}] ${r.kind.padEnd(10)} ${view === 'transcript' ? r.text : firstLine(r.text, 140)}`,
+  );
   const head = `${child.name} (${view}) — ${shown.length} of ${records.length} matching records, ${child.turns} turns, ${fmtCost(child.costUsd)}`;
-  return `${head}\n\n${cap(lines.join("\n"), TOOL_TEXT_CAP)}\n${footer}`;
+  return `${head}\n\n${cap(lines.join('\n'), TOOL_TEXT_CAP)}\n${footer}`;
 }
 
 function harvest(child: Subagent): string {
   const files = [...child.filesTouched];
   return [
-    `${child.name}: ${child.state === "exited" ? `exited(${child.exitSignal ?? child.exitCode})` : child.state}`,
+    `${child.name}: ${child.state === 'exited' ? `exited(${child.exitSignal ?? child.exitCode})` : child.state}`,
     `turns: ${child.turns}  cost: ${fmtCost(child.costUsd)}  ran: ${fmtAge(Date.now() - child.startedAt)}`,
-    `files modified: ${files.length ? files.join(", ") : "(none detected)"}`,
-    "",
-    "Last message:",
-    cap(child.lastText || "(none)", SNIPPET_CAP),
-    "",
+    `files modified: ${files.length ? files.join(', ') : '(none detected)'}`,
+    '',
+    'Last message:',
+    cap(child.lastText || '(none)', SNIPPET_CAP),
+    '',
     `Log retained at ${child.logPath}`,
-  ].join("\n");
+  ].join('\n');
 }
 
 function textResult(text: string, details: Record<string, unknown> = {}) {
-  return { content: [{ type: "text" as const, text: cap(text, TOOL_TEXT_CAP) }], details };
+  return {
+    content: [{ type: 'text' as const, text: cap(text, TOOL_TEXT_CAP) }],
+    details,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -1020,44 +1283,63 @@ function textResult(text: string, details: Record<string, unknown> = {}) {
 
 function registerParentTools(pi: ExtensionAPI) {
   pi.registerTool({
-    name: "subagent_spawn",
-    label: "Spawn Subagents",
+    name: 'subagent_spawn',
+    label: 'Spawn Subagents',
     description: [
-      "Start one or more general-purpose subagents, each in its own pi process with its own context window.",
-      "Returns IMMEDIATELY with the assigned names; the subagents keep running in the background.",
-      "Each subagent sees none of this conversation, so every task must be self-contained: state the repo paths,",
-      "the constraints, and exactly what you want reported back.",
+      'Start one or more subagents which are a copy of you, each in its own pi process with its own context window.',
+      'Each subagent sees none of this conversation, so every task must be self-contained,',
+      'the constraints, and exactly what you want reported back.',
       `At most ${MAX_LIVE_CHILDREN} subagents may be alive at once.`,
-    ].join(" "),
-    promptSnippet: "Start background subagents on self-contained tasks; returns immediately",
+    ].join(' '),
+    promptSnippet:
+      'Start background subagents on self-contained tasks; returns immediately',
     promptGuidelines: [
-      "Use subagent_spawn for open-ended recon or long-running work whose intermediate output would bloat this context; pass several entries in one call to fan out.",
-      "After subagent_spawn, do NOT poll subagent_status in a loop — get on with other work; completions arrive on their own.",
-      "Use subagent_spawn with on_complete 'wake' when the result should resume this session unattended, otherwise leave it as 'notify'.",
+      'Use subagent_spawn for open-ended recon or long-running work whose intermediate output would bloat this context; pass several entries in one call to fan out.',
+      'Do not poll subagent_status after subagent_spawn; a finished subagent resumes this session on its own and delivers its result to you.',
     ],
     parameters: Type.Object({
       agents: Type.Array(
         Type.Object({
-          task: Type.String({ description: "Self-contained brief; the subagent sees none of this conversation" }),
-          name: Type.Optional(Type.String({ description: "Handle for this subagent; derived from the task if omitted" })),
-          system_prompt: Type.Optional(Type.String({ description: "Extra system-prompt text for this subagent" })),
-          model: Type.Optional(Type.String({ description: "provider/id override; defaults to this session's model" })),
-          on_complete: Type.Optional(
-            StringEnum(["notify", "wake"] as const, {
-              description: "notify holds the result for your next turn; wake resumes this session unattended",
+          task: Type.String({
+            description:
+              'Self-contained brief; the subagent sees none of this conversation',
+          }),
+          name: Type.Optional(
+            Type.String({
+              description:
+                'Handle for this subagent; derived from the task if omitted',
             }),
           ),
-          max_turns: Type.Optional(Type.Number({ description: `Turn budget, default ${DEFAULT_MAX_TURNS}` })),
-          max_cost_usd: Type.Optional(Type.Number({ description: `Cost budget in USD, default ${DEFAULT_MAX_COST_USD}` })),
+          system_prompt: Type.Optional(
+            Type.String({
+              description: 'Extra system-prompt text for this subagent',
+            }),
+          ),
+          model: Type.Optional(
+            Type.String({
+              description:
+                "provider/id override; defaults to this session's model",
+            }),
+          ),
+          max_turns: Type.Optional(
+            Type.Number({
+              description: `Turn budget, default ${DEFAULT_MAX_TURNS}`,
+            }),
+          ),
+          max_cost_usd: Type.Optional(
+            Type.Number({
+              description: `Cost budget in USD, default ${DEFAULT_MAX_COST_USD}`,
+            }),
+          ),
         }),
-        { description: "One entry per subagent; all start in parallel" },
+        { description: 'One entry per subagent; all start in parallel' },
       ),
     }),
 
     async execute(_id, params, _signal, _onUpdate, ctx) {
       uiCtx = ctx;
       const specs = params.agents ?? [];
-      if (specs.length === 0) return textResult("Provide at least one agent.");
+      if (specs.length === 0) return textResult('Provide at least one agent.');
 
       const liveCount = liveChildren().length;
       if (liveCount + specs.length > MAX_LIVE_CHILDREN) {
@@ -1085,40 +1367,49 @@ function registerParentTools(pi: ExtensionAPI) {
 
       return textResult(
         [
-          `Started ${started.length} subagent(s): ${started.join(", ")}.`,
-          "",
-          "They are running in the background. Do NOT poll subagent_status in a loop and do NOT call",
-          "subagent_wait unless you genuinely have nothing else to do — results are delivered to you",
-          "automatically when each subagent finishes or has something to say.",
-          "Continue with other work now.",
-        ].join("\n"),
+          `Started ${started.length} subagent(s): ${started.join(', ')}.`,
+          '',
+          'They are running in the background. Do NOT poll subagent_status in a loop and do NOT call',
+          'subagent_wait unless you genuinely have nothing else to do — results are delivered to you',
+          'automatically when each subagent finishes or has something to say.',
+          'Continue with other work now.',
+        ].join('\n'),
         { started },
       );
     },
   });
 
   pi.registerTool({
-    name: "subagent_send",
-    label: "Message Subagent",
+    name: 'subagent_send',
+    label: 'Message Subagent',
     description: [
       "Send a message to a running subagent. It is injected at the subagent's next safe point:",
-      "immediately if the subagent is idle, otherwise after its current turn finishes its tool calls.",
-      "Returns once the subagent has actually taken the message into its context, or with a clear",
+      'immediately if the subagent is idle, otherwise after its current turn finishes its tool calls.',
+      'Returns once the subagent has actually taken the message into its context, or with a clear',
       "non-delivery reason. It does NOT wait for the subagent's answer — that arrives as news later.",
-    ].join(" "),
-    promptSnippet: "Send a steering message or reply to a running subagent",
+    ].join(' '),
+    promptSnippet: 'Send a steering message or reply to a running subagent',
     promptGuidelines: [
-      "Use subagent_send to redirect or answer a subagent rather than stopping and respawning it.",
+      'Use subagent_send to redirect or answer a subagent rather than stopping and respawning it.',
     ],
     parameters: Type.Object({
-      name: Type.String({ description: "Subagent handle" }),
-      message: Type.String({ description: "Message text; cannot start with '/'" }),
+      name: Type.String({ description: 'Subagent handle' }),
+      message: Type.String({
+        description: "Message text; cannot start with '/'",
+      }),
     }),
 
     async execute(_id, params, signal, _onUpdate, ctx) {
       uiCtx = ctx;
       const child = fleet.get(params.name);
-      if (!child) return textResult(`No subagent named "${params.name}". Live: ${liveChildren().map((c) => c.name).join(", ") || "none"}.`);
+      if (!child)
+        return textResult(
+          `No subagent named "${params.name}". Live: ${
+            liveChildren()
+              .map((c) => c.name)
+              .join(', ') || 'none'
+          }.`,
+        );
       if (!child.alive) {
         return textResult(
           `Subagent "${child.name}" has already exited (code=${child.exitCode} signal=${child.exitSignal}); nothing was sent.\n\n${harvest(child)}`,
@@ -1126,8 +1417,10 @@ function registerParentTools(pi: ExtensionAPI) {
       }
       // Extension commands cannot be queued, and skill/template expansion would
       // rewrite the text before it is queued.
-      if (params.message.trimStart().startsWith("/")) {
-        return textResult("Messages starting with '/' are extension commands and cannot be delivered to a subagent.");
+      if (params.message.trimStart().startsWith('/')) {
+        return textResult(
+          "Messages starting with '/' are extension commands and cannot be delivered to a subagent.",
+        );
       }
 
       // Presence-matching queue_update.steering[] is not a sound receipt: it is a
@@ -1145,47 +1438,73 @@ function registerParentTools(pi: ExtensionAPI) {
       // B1: the queue only ever drains from inside runLoop, so a steer sent to an
       // idle child sits forever with no further queue_update and no way out.
       // Liveness decides the command, not convenience.
-      let route: "prompt" | "steer" = "prompt";
+      let route: 'prompt' | 'steer' = 'prompt';
       try {
-        const state = await child.send("get_state", {}, COMMAND_TIMEOUT_MS, signal);
-        route = state?.isStreaming === true ? "steer" : "prompt";
-        if (route === "steer") {
-          await child.send("steer", { message: payload }, COMMAND_TIMEOUT_MS, signal);
+        const state = await child.send(
+          'get_state',
+          {},
+          COMMAND_TIMEOUT_MS,
+          signal,
+        );
+        route = state?.isStreaming === true ? 'steer' : 'prompt';
+        if (route === 'steer') {
+          await child.send(
+            'steer',
+            { message: payload },
+            COMMAND_TIMEOUT_MS,
+            signal,
+          );
         } else {
           // streamingBehavior closes the race where the child starts a run
           // between get_state and this write: pi then queues it as a steer
           // instead of erroring.
-          await child.send("prompt", { message: payload, streamingBehavior: "steer" }, COMMAND_TIMEOUT_MS, signal);
+          await child.send(
+            'prompt',
+            { message: payload, streamingBehavior: 'steer' },
+            COMMAND_TIMEOUT_MS,
+            signal,
+          );
         }
         ack.arm();
       } catch (err) {
         ack.cancel();
-        return textResult(`Could not send to "${child.name}": ${(err as Error).message}`);
+        return textResult(
+          `Could not send to "${child.name}": ${(err as Error).message}`,
+        );
       }
 
       const outcome = await withDeadline<AckOutcome>(
         ack.promise,
         ACK_TIMEOUT_MS,
-        () => "timeout",
+        () => 'timeout',
         signal,
-        () => "aborted",
+        () => 'aborted',
       );
       ack.cancel();
 
       const suffix = `\n\nThe subagent's reply, if any, arrives later as subagent news. Do not wait for it here.`;
       switch (outcome) {
-        case "delivered":
-          return textResult(`Delivered to "${child.name}" via the ${route} path; the subagent has it in context now.${suffix}`, { outcome, route });
-        case "child_exited":
-          return textResult(`Subagent "${child.name}" exited before taking the message.\n\n${harvest(child)}`, { outcome });
-        case "not_delivered":
+        case 'delivered':
+          return textResult(
+            `Delivered to "${child.name}" via the ${route} path; the subagent has it in context now.${suffix}`,
+            { outcome, route },
+          );
+        case 'child_exited':
+          return textResult(
+            `Subagent "${child.name}" exited before taking the message.\n\n${harvest(child)}`,
+            { outcome },
+          );
+        case 'not_delivered':
           return textResult(
             `Subagent "${child.name}" settled without consuming the message — it is stranded in its queue and will not be read. ` +
               `Send it again now that the subagent is idle.`,
             { outcome },
           );
-        case "aborted":
-          return textResult(`Wait cancelled. The message was handed to "${child.name}" but delivery is unconfirmed.`, { outcome });
+        case 'aborted':
+          return textResult(
+            `Wait cancelled. The message was handed to "${child.name}" but delivery is unconfirmed.`,
+            { outcome },
+          );
         default:
           return textResult(
             `No delivery confirmation from "${child.name}" within ${ACK_TIMEOUT_MS / 1000}s. It is queued; the subagent is likely mid-turn. ` +
@@ -1197,125 +1516,184 @@ function registerParentTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
-    name: "subagent_wait",
-    label: "Wait For Subagents",
+    name: 'subagent_wait',
+    label: 'Wait For Subagents',
     description: [
-      "Block until subagents go idle or exit, up to a timeout. Use this ONLY when you have nothing else to do;",
-      "otherwise just continue working and let news reach you. A timeout is a normal outcome, not a failure.",
-    ].join(" "),
-    promptSnippet: "Wait for running subagents to settle, with a required timeout",
+      'Block until subagents go idle or exit, up to a timeout. Use this ONLY when you have nothing else to do;',
+      'otherwise just continue working and let news reach you. A timeout is a normal outcome, not a failure.',
+    ].join(' '),
+    promptSnippet:
+      'Wait for running subagents to settle, with a required timeout',
     promptGuidelines: [
-      "Use subagent_wait instead of polling subagent_status in a loop; never call subagent_status repeatedly to simulate waiting.",
+      'Use subagent_wait instead of polling subagent_status in a loop; never call subagent_status repeatedly to simulate waiting.',
     ],
     parameters: Type.Object({
-      names: Type.Optional(Type.Array(Type.String(), { description: "Subagents to wait for; defaults to all live ones" })),
-      until: Type.Optional(StringEnum(["any", "all"] as const, { description: "Return on the first settle (default) or when all settle" })),
-      timeout_seconds: Type.Number({ description: `Required. Capped at ${WAIT_CAP_SECONDS}.` }),
+      names: Type.Optional(
+        Type.Array(Type.String(), {
+          description: 'Subagents to wait for; defaults to all live ones',
+        }),
+      ),
+      until: Type.Optional(
+        StringEnum(['any', 'all'] as const, {
+          description:
+            'Return on the first settle (default) or when all settle',
+        }),
+      ),
+      timeout_seconds: Type.Number({
+        description: `Required. Capped at ${WAIT_CAP_SECONDS}.`,
+      }),
     }),
 
     async execute(_id, params, signal, _onUpdate, ctx) {
       uiCtx = ctx;
-      const targets = (params.names?.length ? params.names.map((n) => fleet.get(n)).filter((c): c is Subagent => !!c) : liveChildren());
-      if (targets.length === 0) return textResult("No matching subagents to wait for.");
+      const targets = params.names?.length
+        ? params.names
+            .map((n) => fleet.get(n))
+            .filter((c): c is Subagent => !!c)
+        : liveChildren();
+      if (targets.length === 0)
+        return textResult('No matching subagents to wait for.');
 
-      const timeoutMs = Math.max(1, Math.min(params.timeout_seconds || 60, WAIT_CAP_SECONDS)) * 1000;
-      const until = params.until ?? "any";
+      const timeoutMs =
+        Math.max(1, Math.min(params.timeout_seconds || 60, WAIT_CAP_SECONDS)) *
+        1000;
+      const until = params.until ?? 'any';
       const settles = targets.map((c) => c.waitForSettle());
-      const combined = until === "all" ? Promise.all(settles).then(() => undefined) : Promise.race(settles);
+      const combined =
+        until === 'all'
+          ? Promise.all(settles).then(() => undefined)
+          : Promise.race(settles);
 
-      const result = await withDeadline<"settled" | "timeout" | "aborted">(
-        combined.then(() => "settled" as const),
+      const result = await withDeadline<'settled' | 'timeout' | 'aborted'>(
+        combined.then(() => 'settled' as const),
         timeoutMs,
-        () => "timeout",
+        () => 'timeout',
         signal,
-        () => "aborted",
+        () => 'aborted',
       );
 
       // Drain so the same news is not also delivered as a steer.
       const news = drainMailbox(new Set(targets.map((c) => c.name)));
       const header =
-        result === "settled"
+        result === 'settled'
           ? `Wait satisfied (${until}).`
-          : result === "aborted"
-            ? "Wait cancelled. The subagents are still running — nothing was stopped."
+          : result === 'aborted'
+            ? 'Wait cancelled. The subagents are still running — nothing was stopped.'
             : `Timed out after ${timeoutMs / 1000}s. This is NOT an error: the subagents below are still running normally. Do not stop them for this reason.`;
 
       return textResult(
-        [header, "", targets.map(childLine).join("\n"), news.length ? `\n${renderNews(news)}` : ""].join("\n"),
+        [
+          header,
+          '',
+          targets.map(childLine).join('\n'),
+          news.length ? `\n${renderNews(news)}` : '',
+        ].join('\n'),
         { result },
       );
     },
   });
 
   pi.registerTool({
-    name: "subagent_log",
-    label: "Subagent Log",
+    name: 'subagent_log',
+    label: 'Subagent Log',
     description: [
       "Inspect what a subagent has been doing. 'outline' is one line per event with tool calls digested,",
       "'transcript' is the same with untruncated lines, 'final' is just the last assistant message.",
-      "The result footer names the on-disk JSONL log; grep that instead of asking for a bigger limit.",
-    ].join(" "),
-    promptSnippet: "Read a subagent's activity outline, transcript, or final message",
+      'The result footer names the on-disk JSONL log; grep that instead of asking for a bigger limit.',
+    ].join(' '),
+    promptSnippet:
+      "Read a subagent's activity outline, transcript, or final message",
     parameters: Type.Object({
-      name: Type.String({ description: "Subagent handle" }),
-      view: Type.Optional(StringEnum(["outline", "transcript", "final"] as const)),
-      filter: Type.Optional(Type.String({ description: "Case-insensitive substring filter over log lines" })),
-      limit: Type.Optional(Type.Number({ description: "Max lines, default 60, cap 200" })),
+      name: Type.String({ description: 'Subagent handle' }),
+      view: Type.Optional(
+        StringEnum(['outline', 'transcript', 'final'] as const),
+      ),
+      filter: Type.Optional(
+        Type.String({
+          description: 'Case-insensitive substring filter over log lines',
+        }),
+      ),
+      limit: Type.Optional(
+        Type.Number({ description: 'Max lines, default 60, cap 200' }),
+      ),
     }),
 
     async execute(_id, params, _signal, _onUpdate, ctx) {
       uiCtx = ctx;
       const child = fleet.get(params.name);
-      if (!child) return textResult(`No subagent named "${params.name}". Known: ${[...fleet.keys()].join(", ") || "none"}.`);
+      if (!child)
+        return textResult(
+          `No subagent named "${params.name}". Known: ${[...fleet.keys()].join(', ') || 'none'}.`,
+        );
       const limit = Math.max(1, Math.min(params.limit ?? 60, 200));
-      return textResult(renderLog(child, params.view ?? "outline", params.filter, limit));
+      return textResult(
+        renderLog(child, params.view ?? 'outline', params.filter, limit),
+      );
     },
   });
 
   pi.registerTool({
-    name: "subagent_status",
-    label: "Subagent Status",
-    description: "One line per subagent: state, turns, cost, context usage, idle time, and what it is doing right now.",
-    promptSnippet: "Show the state of every subagent in this session",
+    name: 'subagent_status',
+    label: 'Subagent Status',
+    description:
+      'One line per subagent: state, turns, cost, context usage, idle time, and what it is doing right now.',
+    promptSnippet: 'Show the state of every subagent in this session',
     parameters: Type.Object({}),
 
     async execute(_id, _params, signal, _onUpdate, ctx) {
       uiCtx = ctx;
-      if (fleet.size === 0) return textResult("No subagents in this session.");
+      if (fleet.size === 0) return textResult('No subagents in this session.');
       await Promise.all(
         liveChildren().map(async (c) => {
-          const stats = await withDeadline<any>(c.send("get_session_stats", {}, 5_000, signal), 5_000, () => undefined, signal, () => undefined);
+          const stats = await withDeadline<any>(
+            c.send('get_session_stats', {}, 5_000, signal),
+            5_000,
+            () => undefined,
+            signal,
+            () => undefined,
+          );
           const pct = stats?.contextUsage?.percent;
-          if (typeof pct === "number") c.contextPercent = Math.round(pct);
+          if (typeof pct === 'number') c.contextPercent = Math.round(pct);
         }),
       );
       const lines = [...fleet.values()].map(childLine);
-      return textResult(`${lines.join("\n")}\n\nUse subagent_log(name) for detail.`);
+      return textResult(
+        `${lines.join('\n')}\n\nUse subagent_log(name) for detail.`,
+      );
     },
   });
 
   pi.registerTool({
-    name: "subagent_stop",
-    label: "Stop Subagent",
-    description: "Stop a subagent (or 'all') and report what it accomplished. The log is retained and remains readable.",
-    promptSnippet: "Stop a subagent and harvest what it accomplished",
+    name: 'subagent_stop',
+    label: 'Stop Subagent',
+    description:
+      "Stop a subagent (or 'all') and report what it accomplished. The log is retained and remains readable.",
+    promptSnippet: 'Stop a subagent and harvest what it accomplished',
     parameters: Type.Object({
       name: Type.String({ description: "Subagent handle, or 'all'" }),
     }),
 
     async execute(_id, params, _signal, _onUpdate, ctx) {
       uiCtx = ctx;
-      const targets = params.name === "all" ? liveChildren() : [fleet.get(params.name)].filter((c): c is Subagent => !!c);
-      if (targets.length === 0) return textResult(`No matching subagent for "${params.name}".`);
+      const targets =
+        params.name === 'all'
+          ? liveChildren()
+          : [fleet.get(params.name)].filter((c): c is Subagent => !!c);
+      if (targets.length === 0)
+        return textResult(`No matching subagent for "${params.name}".`);
       const reports: string[] = [];
       for (const child of targets) {
-        await withDeadline<void>(child.stop(), KILL_GRACE_MS + 2_000, () => undefined);
+        await withDeadline<void>(
+          child.stop(),
+          KILL_GRACE_MS + 2_000,
+          () => undefined,
+        );
         reports.push(harvest(child));
       }
       drainMailbox(new Set(targets.map((c) => c.name)));
       writeRegistry();
       refreshUi();
-      return textResult(reports.join("\n\n---\n\n"));
+      return textResult(reports.join('\n\n---\n\n'));
     },
   });
 }
@@ -1324,82 +1702,239 @@ function registerParentTools(pi: ExtensionAPI) {
 // entry point
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// parent-side: live attach view
+// ---------------------------------------------------------------------------
+
+const ATTACH_BODY_ROWS = 24;
+
+// A subagent's work is otherwise invisible: the parent only ever surfaces its
+// final report, and the widget one line. This renders the child's event stream
+// as it arrives, so a human can watch what it is actually doing.
+class AttachView {
+  private offset = 0;
+  private follow = true;
+
+  constructor(
+    private readonly child: Subagent,
+    private readonly requestRender: () => void,
+    private readonly close: () => void,
+  ) {}
+
+  private lines(width: number): string[] {
+    return this.child.getRecords().map((r) => {
+      const head = `[+${fmtAge(r.t)}] ${r.kind.padEnd(9)} `;
+      return `${head}${firstLine(r.text, Math.max(20, width - head.length - 1))}`;
+    });
+  }
+
+  render(width: number): string[] {
+    const c = this.child;
+    const all = this.lines(width);
+    const maxOffset = Math.max(0, all.length - ATTACH_BODY_ROWS);
+    if (this.follow) this.offset = maxOffset;
+    this.offset = Math.min(Math.max(0, this.offset), maxOffset);
+    const body = all.slice(this.offset, this.offset + ATTACH_BODY_ROWS);
+
+    const header = `── ${c.name} [${c.state}] t${c.turns} ${fmtCost(c.costUsd)} ${c.model ?? ''} ──`;
+    const pos = all.length > ATTACH_BODY_ROWS
+      ? ` ${this.offset + body.length}/${all.length}${this.follow ? ' (following)' : ''}`
+      : '';
+    const footer = `── j/k scroll · g/G top/bottom · f follow · q close ·${pos} ──`;
+
+    const fit = (line: string) =>
+      line.length > width ? line.slice(0, width) : line;
+    return [
+      fit(header),
+      ...(body.length ? body.map(fit) : ['  (no activity recorded yet)']),
+      fit(footer),
+    ];
+  }
+
+  handleInput(data: string) {
+    // Longer escape sequences first: a bare ESC is also the arrow-key prefix.
+    if (data === '\x1b[A' || data === 'k') {
+      this.follow = false;
+      this.offset -= 1;
+    } else if (data === '\x1b[B' || data === 'j') {
+      this.offset += 1;
+    } else if (data === '\x1b[5~') {
+      this.follow = false;
+      this.offset -= ATTACH_BODY_ROWS;
+    } else if (data === '\x1b[6~') {
+      this.offset += ATTACH_BODY_ROWS;
+    } else if (data === 'g') {
+      this.follow = false;
+      this.offset = 0;
+    } else if (data === 'G') {
+      this.follow = true;
+    } else if (data === 'f') {
+      this.follow = !this.follow;
+    } else if (data === 'q' || data === '\x1b' || data === '\x03') {
+      // Detaching never stops the child; it keeps working in the background.
+      this.close();
+      return;
+    }
+    this.requestRender();
+  }
+
+  invalidate() {}
+}
+
+async function openAttachView(ctx: ExtensionContext, child: Subagent) {
+  await ctx.ui.custom<null>(
+    (tui, _theme, _keybindings, done) => {
+      const view = new AttachView(
+        child,
+        () => tui.requestRender(),
+        () => done(null),
+      );
+      const listener = () => tui.requestRender();
+      attachListeners.add(listener);
+      const originalClose = view.handleInput.bind(view);
+      view.handleInput = (data: string) => {
+        originalClose(data);
+        if (data === 'q' || data === '\x1b' || data === '\x03')
+          attachListeners.delete(listener);
+      };
+      return view;
+    },
+    {
+      overlay: true,
+      // Default placement floats this narrow and to the right, over the
+      // transcript. A subagent's tool calls need the width to stay legible.
+      overlayOptions: { anchor: 'center', width: '92%', margin: 1 },
+      onHandle: (handle: { focus: () => void }) => handle.focus(),
+    },
+  );
+}
+
 export default function subagentExtension(pi: ExtensionAPI) {
-  const depth = Number(process.env[DEPTH_ENV] ?? "0") || 0;
+  const depth = Number(process.env[DEPTH_ENV] ?? '0') || 0;
   if (depth > 0) {
     registerChildTools(pi);
     return;
   }
 
   api = pi;
-  registryDir = path.join(getAgentDir(), "subagents", String(process.pid));
+  registryDir = path.join(getAgentDir(), 'subagents', String(process.pid));
 
-  pi.registerMessageRenderer("subagent-news", (message, options, theme) => {
-    const header = theme.fg("accent", "[subagents] ");
-    return new Text(header + String(message.content ?? ""), options.outputPad, 0);
+  pi.registerMessageRenderer('subagent-news', (message, options, theme) => {
+    const header = theme.fg('accent', '[subagents] ');
+    return new Text(
+      header + String(message.content ?? ''),
+      options.outputPad,
+      0,
+    );
   });
 
-  pi.on("session_start", async (_event, ctx) => {
+  pi.on('session_start', async (_event, ctx) => {
     uiCtx = ctx;
     shuttingDown = false;
     sessionDir = path.join(
       getAgentDir(),
-      "subagent-sessions",
-      kebab(path.basename(ctx.sessionManager.getSessionFile() ?? `pid-${process.pid}`, ".jsonl")) || `pid-${process.pid}`,
+      'subagent-sessions',
+      kebab(
+        path.basename(
+          ctx.sessionManager.getSessionFile() ?? `pid-${process.pid}`,
+          '.jsonl',
+        ),
+      ) || `pid-${process.pid}`,
     );
     sweepStaleRegistries();
     refreshUi();
   });
 
-  pi.on("before_agent_start", async (event, ctx) => {
+  pi.on('before_agent_start', async (event, ctx) => {
     uiCtx = ctx;
     parentBusy = true;
     // getSystemPromptOptions() lives on ExtensionCommandContext, not on the plain
     // ExtensionContext a tool execute() receives, so cache it from here.
     const appended = (event as any).systemPromptOptions?.appendSystemPrompt;
-    if (typeof appended === "string") cachedAppendSystemPrompt = appended;
+    if (typeof appended === 'string') cachedAppendSystemPrompt = appended;
 
     const live = liveChildren();
     if (live.length === 0) return;
     // Survives compaction, unlike an injected message: this is what stops the
     // parent forgetting it has children.
     const roster = live
-      .map((c) => `${c.name}(${c.state === "working" ? `working t${c.turns}` : c.state})`)
-      .join(" ");
-    return { systemPrompt: `${event.systemPrompt}\n\nSubagents alive: ${roster}. Use subagent_status/subagent_log/subagent_send.` };
+      .map(
+        (c) =>
+          `${c.name}(${c.state === 'working' ? `working t${c.turns}` : c.state})`,
+      )
+      .join(' ');
+    return {
+      systemPrompt: `${event.systemPrompt}\n\nSubagents alive: ${roster}. Use subagent_status/subagent_log/subagent_send.`,
+    };
   });
 
-  pi.on("agent_settled", async (_event, ctx) => {
+  pi.on('agent_settled', async (_event, ctx) => {
     uiCtx = ctx;
     parentBusy = false;
     if (mailbox.length > 0) scheduleFlush(200);
   });
 
   // Fires repeatedly and on every session replacement, so it must be idempotent.
-  pi.on("session_shutdown", async () => {
+  pi.on('session_shutdown', async () => {
     shuttingDown = true;
     if (flushTimer) clearTimeout(flushTimer);
     flushTimer = undefined;
     const live = liveChildren();
     for (const child of live) child.stopping = true;
-    await Promise.all(live.map((c) => withDeadline<void>(c.stop(), KILL_GRACE_MS + 2_000, () => undefined)));
+    await Promise.all(
+      live.map((c) =>
+        withDeadline<void>(c.stop(), KILL_GRACE_MS + 2_000, () => undefined),
+      ),
+    );
     writeRegistry();
     if (uiActive) {
       uiActive = false;
-      safeUi()?.setStatus("subagent", undefined);
-      safeUi()?.setWidget("subagent", undefined);
+      safeUi()?.setStatus('subagent', undefined);
+      safeUi()?.setWidget('subagent', undefined);
     }
   });
 
   setInterval(() => {
     const now = Date.now();
     for (const child of liveChildren()) {
-      if (child.state === "working" && !child.stalledReported && now - child.lastActivityAt > STALL_MS) {
+      if (
+        child.state === 'working' &&
+        !child.stalledReported &&
+        now - child.lastActivityAt > STALL_MS
+      ) {
         child.stalledReported = true;
-        emitNews(child, "stalled", `no activity for ${fmtAge(now - child.lastActivityAt)}; last: ${firstLine(child.lastText, 200)}`);
+        emitNews(
+          child,
+          'stalled',
+          `no activity for ${fmtAge(now - child.lastActivityAt)}; last: ${firstLine(child.lastText, 200)}`,
+        );
       }
     }
   }, 30_000).unref?.();
+
+  pi.registerCommand('subagent', {
+    description: 'Watch a running subagent live (no args lists the fleet)',
+    handler: async (args, ctx) => {
+      const wanted = (args ?? '').trim();
+      const all = [...fleet.values()];
+      if (all.length === 0) {
+        ctx.ui.notify('No subagents in this session.', 'info');
+        return;
+      }
+      const child = wanted
+        ? (fleet.get(wanted) ?? all.find((c) => c.name.startsWith(wanted)))
+        : all.find((c) => c.state === 'working') ?? all[all.length - 1];
+      if (!child) {
+        ctx.ui.notify(
+          `No subagent "${wanted}". Known: ${all.map((c) => c.name).join(', ')}`,
+          'error',
+        );
+        return;
+      }
+      uiCtx = ctx;
+      await openAttachView(ctx, child);
+    },
+  });
 
   registerParentTools(pi);
 }
