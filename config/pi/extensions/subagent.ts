@@ -297,6 +297,7 @@ const KEEP_EVENTS = new Set([
   'extension_ui_request',
   'compaction_start',
   'response',
+  'message_update',
 ]);
 
 type LogRecord = { t: number; kind: string; text: string };
@@ -342,6 +343,9 @@ class Subagent {
   contextPercent?: number;
   currentTool?: string;
   lastText = '';
+  // Assembled from text_delta events so the attach view can show a reply as it
+  // is written. message_update carries no cumulative snapshot, only the delta.
+  partialText = '';
   exitCode?: number | null;
   exitSignal?: NodeJS.Signals | null;
   stopping = false;
@@ -632,7 +636,18 @@ class Subagent {
       }
       case 'turn_start':
         this.turns++;
+        this.partialText = '';
         return;
+      case 'message_update': {
+        const delta = event.assistantMessageEvent;
+        if (delta?.type === 'text_start') this.partialText = '';
+        else if (delta?.type === 'text_delta')
+          this.partialText += String(delta.delta ?? '');
+        else return;
+        this.lastActivityAt = Date.now();
+        notifyAttach();
+        return;
+      }
       case 'message_start': {
         if (event.message?.role !== 'user') return;
         const text = contentText(event.message.content);
@@ -667,6 +682,8 @@ class Subagent {
           this.lastText = text;
           this.record('assistant', cap(text, 4_000));
         }
+        // The finished message is now a record; keep the stream from showing twice.
+        this.partialText = '';
         return;
       }
       case 'tool_execution_start': {
@@ -691,7 +708,7 @@ class Subagent {
         const text = contentText(event.result?.content);
         this.record(
           'result',
-          `${event.toolName}${event.isError ? ' ERROR' : ''}: ${firstLine(text, 200)}`,
+          `${event.toolName}${event.isError ? ' ERROR' : ''}: ${firstLine(text, 2_000)}`,
         );
         return;
       }
@@ -789,11 +806,11 @@ function stripSentinel(text: string): string {
 
 function argDigest(tool: string, args: any): string {
   if (!args || typeof args !== 'object') return '';
-  if (tool === 'bash') return firstLine(String(args.command ?? ''), 120);
+  if (tool === 'bash') return firstLine(String(args.command ?? ''), 1_000);
   if (typeof args.path === 'string') return args.path;
   if (typeof args.pattern === 'string') return args.pattern;
   const keys = Object.keys(args).slice(0, 3);
-  return keys.map((k) => `${k}=${firstLine(String(args[k]), 40)}`).join(' ');
+  return keys.map((k) => `${k}=${firstLine(String(args[k]), 400)}`).join(' ');
 }
 
 // ---------------------------------------------------------------------------
@@ -816,6 +833,9 @@ let parentBusy = false;
 // stdout produces an event, so there is nothing to poll.
 const attachListeners = new Set<() => void>();
 const spokeWaiters = new Set<(name: string) => void>();
+const attachTicks = new Set<() => void>();
+const viewTicks = new WeakMap<object, () => void>();
+let spinnerTimer: NodeJS.Timeout | undefined;
 function notifyAttach() {
   for (const fn of attachListeners) {
     try {
@@ -1681,6 +1701,7 @@ function registerParentTools(pi: ExtensionAPI) {
 // ---------------------------------------------------------------------------
 
 const ATTACH_BODY_ROWS = 24;
+const SPINNER = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
 // A subagent's work is otherwise invisible: the parent only ever surfaces its
 // final report, and the widget one line. This renders the child's event stream
@@ -1689,7 +1710,12 @@ type ViewLine = { text: string; tone: string };
 
 // Colours are applied after wrapping and truncation, never before: padEnd counts
 // escape bytes, so a coloured line padded by raw length breaks the right border.
-const wrapPlain = (text: string, width: number, indent = ''): string[] => {
+const wrapPlain = (
+  text: string,
+  width: number,
+  indent = '',
+  maxLines = 0,
+): string[] => {
   const out: string[] = [];
   for (const para of text.split('\n')) {
     if (!para.trim()) {
@@ -1707,12 +1733,18 @@ const wrapPlain = (text: string, width: number, indent = ''): string[] => {
     }
     if (line.trim()) out.push(line);
   }
+  if (maxLines > 0 && out.length > maxLines) {
+    const kept = out.slice(0, maxLines);
+    kept.push(`… ${out.length - maxLines} more lines`);
+    return kept;
+  }
   return out;
 };
 
 class AttachView {
   private offset = 0;
   private follow = true;
+  tick = 0;
 
   constructor(
     private readonly child: Subagent,
@@ -1751,10 +1783,12 @@ class AttachView {
           for (const l of wrapPlain(r.text, inner)) push(l, '');
           break;
         case 'tool':
-          push(`  ⏵ ${r.text.slice(0, inner - 4)}`, 'accent');
+          for (const l of wrapPlain(r.text, inner - 4, '', 6))
+            push(`  ⏵ ${l}`, 'accent');
           break;
         case 'result':
-          push(`      ${firstLine(r.text, inner - 8)}`, 'muted');
+          for (const l of wrapPlain(r.text, inner - 6, '', 8))
+            push(`      ${l}`, 'muted');
           break;
         case 'compaction':
           push(`  ~ ${r.text}`, 'warning');
@@ -1766,6 +1800,15 @@ class AttachView {
         default:
           push(`  · ${firstLine(r.text, inner - 4)}`, 'muted');
       }
+    }
+
+    if (this.child.partialText) {
+      push('');
+      for (const l of wrapPlain(this.child.partialText, inner)) push(l, '');
+    }
+    if (this.child.state === 'working') {
+      push('');
+      push(`${SPINNER[this.tick % SPINNER.length]} Working…`, 'muted');
     }
     return out;
   }
@@ -1864,17 +1907,32 @@ class AttachView {
 
 async function openAttachView(ctx: ExtensionContext, child: Subagent) {
   let listener: (() => void) | undefined;
+  let openView: object | undefined;
   try {
     await ctx.ui.custom<null>(
       (tui, theme, _keybindings, done) => {
         listener = () => tui.requestRender();
         attachListeners.add(listener);
-        return new AttachView(
+        const view = new AttachView(
           child,
           theme,
           () => tui.requestRender(),
           () => done(null),
         );
+        // The spinner has to animate on its own clock; child events are far too
+        // sparse to drive it, and a still frame is what makes a thinking
+        // subagent look dead. Only runs while a view is open.
+        spinnerTimer ??= setInterval(() => {
+          for (const t of attachTicks) t();
+          notifyAttach();
+        }, 120);
+        const tickFn = () => {
+          view.tick++;
+        };
+        attachTicks.add(tickFn);
+        viewTicks.set(view, tickFn);
+        openView = view;
+        return view;
       },
       {
         overlay: true,
@@ -1886,6 +1944,14 @@ async function openAttachView(ctx: ExtensionContext, child: Subagent) {
     );
   } finally {
     if (listener) attachListeners.delete(listener);
+    if (openView) {
+      const t = viewTicks.get(openView);
+      if (t) attachTicks.delete(t);
+    }
+    if (attachTicks.size === 0 && spinnerTimer) {
+      clearInterval(spinnerTimer);
+      spinnerTimer = undefined;
+    }
   }
 }
 
