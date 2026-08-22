@@ -680,7 +680,7 @@ class Subagent {
         }
         if (text) {
           this.lastText = text;
-          this.record('assistant', firstLine(text));
+          this.record('assistant', cap(text, 4_000));
         }
         return;
       }
@@ -1711,67 +1711,174 @@ const ATTACH_BODY_ROWS = 24;
 // A subagent's work is otherwise invisible: the parent only ever surfaces its
 // final report, and the widget one line. This renders the child's event stream
 // as it arrives, so a human can watch what it is actually doing.
+type ViewLine = { text: string; tone: string };
+
+// Colours are applied after wrapping and truncation, never before: padEnd counts
+// escape bytes, so a coloured line padded by raw length breaks the right border.
+const wrapPlain = (text: string, width: number, indent = ''): string[] => {
+  const out: string[] = [];
+  for (const para of text.split('\n')) {
+    if (!para.trim()) {
+      out.push('');
+      continue;
+    }
+    let line = indent;
+    for (const word of para.trim().split(/\s+/)) {
+      if (line.trim() && line.length + 1 + word.length > width) {
+        out.push(line);
+        line = indent + word;
+      } else {
+        line = line.trim() ? `${line} ${word}` : indent + word;
+      }
+    }
+    if (line.trim()) out.push(line);
+  }
+  return out;
+};
+
 class AttachView {
   private offset = 0;
   private follow = true;
 
   constructor(
     private readonly child: Subagent,
+    private readonly theme: { fg: (c: string, t: string) => string },
     private readonly requestRender: () => void,
     private readonly close: () => void,
   ) {}
 
-  private lines(width: number): string[] {
-    return this.child.getRecords().map((r) => {
-      const head = `[+${fmtAge(r.t)}] ${r.kind.padEnd(9)} `;
-      return `${head}${firstLine(r.text, Math.max(20, width - head.length - 1))}`;
-    });
+  private tint(tone: string, text: string): string {
+    if (!tone) return text;
+    try {
+      return this.theme.fg(tone, text);
+    } catch {
+      return text;
+    }
+  }
+
+  // Rendered as a transcript rather than an event dump: the point of attaching
+  // is to read what the subagent is doing, which is prose and tool calls.
+  private lines(inner: number): ViewLine[] {
+    const out: ViewLine[] = [];
+    const push = (text: string, tone = '') => out.push({ text, tone });
+
+    for (const r of this.child.getRecords()) {
+      switch (r.kind) {
+        case 'run':
+        case 'settled':
+          break;
+        case 'user':
+          push('');
+          for (const l of wrapPlain(r.text, inner - 2, ''))
+            push(`▌ ${l}`, 'accent');
+          break;
+        case 'assistant':
+          push('');
+          for (const l of wrapPlain(r.text, inner)) push(l, '');
+          break;
+        case 'tool':
+          push(`  ⏵ ${r.text.slice(0, inner - 4)}`, 'accent');
+          break;
+        case 'result':
+          push(`      ${firstLine(r.text, inner - 8)}`, 'muted');
+          break;
+        case 'compaction':
+          push(`  ~ ${r.text}`, 'warning');
+          break;
+        case 'error':
+        case 'budget':
+          push(`  ! ${firstLine(r.text, inner - 4)}`, 'error');
+          break;
+        default:
+          push(`  · ${firstLine(r.text, inner - 4)}`, 'muted');
+      }
+    }
+    return out;
   }
 
   render(width: number): string[] {
+    const inner = Math.max(20, width - 4);
     const c = this.child;
-    const all = this.lines(width);
+    const all = this.lines(inner);
     const maxOffset = Math.max(0, all.length - ATTACH_BODY_ROWS);
     if (this.follow) this.offset = maxOffset;
     this.offset = Math.min(Math.max(0, this.offset), maxOffset);
+    // Scrolling back down to the bottom resumes following, as in a pager.
+    if (this.offset >= maxOffset) this.follow = true;
     const body = all.slice(this.offset, this.offset + ATTACH_BODY_ROWS);
 
-    const header = `── ${c.name} [${c.state}] t${c.turns} ${fmtCost(c.costUsd)} ${c.model ?? ''} ──`;
-    const pos = all.length > ATTACH_BODY_ROWS
-      ? ` ${this.offset + body.length}/${all.length}${this.follow ? ' (following)' : ''}`
-      : '';
-    const footer = `── j/k scroll · g/G top/bottom · f follow · q close ·${pos} ──`;
+    // Every row is padded to the full width. An overlay composites over the
+    // transcript beneath it, so a short line leaves the old text showing through.
+    const row = (line: ViewLine) => {
+      const plain =
+        line.text.length > inner ? line.text.slice(0, inner) : line.text;
+      const pad = ' '.repeat(inner - plain.length);
+      return `│ ${this.tint(line.tone, plain)}${pad} │`;
+    };
+    const rule = (label: string) => {
+      const t = ` ${label} `;
+      const trimmed = t.length > inner ? `${t.slice(0, inner - 1)} ` : t;
+      return `─${trimmed}${'─'.repeat(Math.max(0, inner + 2 - trimmed.length - 1))}`;
+    };
 
-    const fit = (line: string) =>
-      line.length > width ? line.slice(0, width) : line;
+    const title = `${c.name} · ${c.state} · turn ${c.turns} · ${fmtCost(c.costUsd)}${c.model ? ` · ${c.model}` : ''}`;
+    const pos =
+      all.length > ATTACH_BODY_ROWS
+        ? ` · ${this.offset + body.length}/${all.length}${this.follow ? ' following' : ''}`
+        : '';
+    const help = `j/k scroll · g/G top/bottom · f follow · q detach${pos}`;
+
+    const rows = body.length ? body : [{ text: '  (nothing yet)', tone: 'muted' }];
     return [
-      fit(header),
-      ...(body.length ? body.map(fit) : ['  (no activity recorded yet)']),
-      fit(footer),
+      `┌${rule(title)}┐`,
+      ...rows.map(row),
+      ...Array.from({ length: Math.max(0, ATTACH_BODY_ROWS - rows.length) }, () =>
+        row({ text: '', tone: '' }),
+      ),
+      `└${rule(help)}┘`,
     ];
   }
 
+  private scroll(delta: number) {
+    if (delta < 0) this.follow = false;
+    this.offset += delta;
+  }
+
+  // Auto-repeat delivers several sequences coalesced into one chunk, so this
+  // must consume a batch rather than match the whole string against one key.
   handleInput(data: string) {
-    // Longer escape sequences first: a bare ESC is also the arrow-key prefix.
-    if (data === '\x1b[A' || data === 'k') {
-      this.follow = false;
-      this.offset -= 1;
-    } else if (data === '\x1b[B' || data === 'j') {
-      this.offset += 1;
-    } else if (data === '\x1b[5~') {
-      this.follow = false;
-      this.offset -= ATTACH_BODY_ROWS;
-    } else if (data === '\x1b[6~') {
-      this.offset += ATTACH_BODY_ROWS;
-    } else if (data === 'g') {
-      this.follow = false;
-      this.offset = 0;
-    } else if (data === 'G') {
-      this.follow = true;
-    } else if (data === 'f') {
-      this.follow = !this.follow;
-    } else if (data === 'q' || data === '\x1b' || data === '\x03') {
-      // Detaching never stops the child; it keeps working in the background.
+    let i = 0;
+    let closing = false;
+    while (i < data.length && !closing) {
+      const rest = data.slice(i);
+      // Escape sequences before the bare ESC that closes the view.
+      if (rest.startsWith('\x1b[A')) {
+        this.scroll(-1);
+        i += 3;
+      } else if (rest.startsWith('\x1b[B')) {
+        this.scroll(1);
+        i += 3;
+      } else if (rest.startsWith('\x1b[5~')) {
+        this.scroll(-ATTACH_BODY_ROWS);
+        i += 4;
+      } else if (rest.startsWith('\x1b[6~')) {
+        this.scroll(ATTACH_BODY_ROWS);
+        i += 4;
+      } else {
+        const ch = data[i];
+        if (ch === 'k') this.scroll(-1);
+        else if (ch === 'j') this.scroll(1);
+        else if (ch === 'g') {
+          this.follow = false;
+          this.offset = 0;
+        } else if (ch === 'G') this.follow = true;
+        else if (ch === 'f') this.follow = !this.follow;
+        else if (ch === 'q' || ch === '\x1b' || ch === '\x03') closing = true;
+        i += 1;
+      }
+    }
+    // Detaching never stops the child; it keeps working in the background.
+    if (closing) {
       this.close();
       return;
     }
@@ -1782,31 +1889,30 @@ class AttachView {
 }
 
 async function openAttachView(ctx: ExtensionContext, child: Subagent) {
-  await ctx.ui.custom<null>(
-    (tui, _theme, _keybindings, done) => {
-      const view = new AttachView(
-        child,
-        () => tui.requestRender(),
-        () => done(null),
-      );
-      const listener = () => tui.requestRender();
-      attachListeners.add(listener);
-      const originalClose = view.handleInput.bind(view);
-      view.handleInput = (data: string) => {
-        originalClose(data);
-        if (data === 'q' || data === '\x1b' || data === '\x03')
-          attachListeners.delete(listener);
-      };
-      return view;
-    },
-    {
-      overlay: true,
-      // Default placement floats this narrow and to the right, over the
-      // transcript. A subagent's tool calls need the width to stay legible.
-      overlayOptions: { anchor: 'center', width: '92%', margin: 1 },
-      onHandle: (handle: { focus: () => void }) => handle.focus(),
-    },
-  );
+  let listener: (() => void) | undefined;
+  try {
+    await ctx.ui.custom<null>(
+      (tui, theme, _keybindings, done) => {
+        listener = () => tui.requestRender();
+        attachListeners.add(listener);
+        return new AttachView(
+          child,
+          theme,
+          () => tui.requestRender(),
+          () => done(null),
+        );
+      },
+      {
+        overlay: true,
+        // Default placement floats this narrow and to the right, over the
+        // transcript. A subagent's tool calls need the width to stay legible.
+        overlayOptions: { anchor: 'center', width: '92%', margin: 1 },
+        onHandle: (handle: { focus: () => void }) => handle.focus(),
+      },
+    );
+  } finally {
+    if (listener) attachListeners.delete(listener);
+  }
 }
 
 export default function subagentExtension(pi: ExtensionAPI) {
