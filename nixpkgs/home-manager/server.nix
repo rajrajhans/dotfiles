@@ -66,6 +66,8 @@ in
   home.file.".local/bin/statusline.sh".source = "${pkgs.callPackage ../statusline.nix { }}/bin/statusline.sh";
   home.file.".local/bin/syscheck" = { source = ../../scripts/syscheck; executable = true; };
 
+  home.file.".pi/agent/extensions".source = ../../config/pi/extensions;
+
   # Enable direnv for project-specific environments
   programs.direnv.enable = true;
   programs.direnv.nix-direnv.enable = true;
