@@ -19,11 +19,20 @@ import { Type } from 'typebox';
 const DEPTH_ENV = 'PI_SUBAGENT_DEPTH';
 const NAME_ENV = 'PI_SUBAGENT_NAME';
 
-// A ceiling rather than a tuned number: the real guards on runaway fan-out are
-// the per-child turn and cost budgets below. This only exists so a confused
-// parent emitting spawn calls in a loop cannot open an unbounded fleet.
-const MAX_LIVE_CHILDREN = 20;
-const DEFAULT_MAX_COST_USD = 5;
+// A subagent is a peer, not a leaf: it gets the dispatch tools too. That makes
+// the tree height the thing to bound. 2 buys the shape people actually want —
+// a lead splits the work, each worker splits its own — and stops there.
+const MAX_DEPTH = 2;
+
+const DEPTH = Number(process.env[DEPTH_ENV] ?? '0') || 0;
+const IS_ROOT = DEPTH === 0;
+const CAN_SPAWN = DEPTH < MAX_DEPTH;
+
+// The root answers to a human who can watch the fleet and interrupt it; a
+// subagent has no such supervision, so its own fan-out is deliberately narrow.
+// Nothing caps spend, so depth and this taper are the only bound on how large a
+// tree can get — 20 at the root, 4 under each of those.
+const MAX_LIVE_CHILDREN = IS_ROOT ? 20 : 4;
 
 // Every await on a child is bounded. A parent tool that blocks forever on a
 // child wedges the human's session, which is strictly worse than a stale answer.
@@ -333,13 +342,15 @@ class Subagent {
   readonly task: string;
   readonly logPath: string;
   readonly startedAt = Date.now();
-  readonly maxCostUsd: number;
 
   proc?: ChildProcess;
   state: 'starting' | 'working' | 'idle' | 'exited' = 'starting';
   lastActivityAt = Date.now();
   turns = 0;
   costUsd = 0;
+  // What this child's own subagents have spent. Its usage events only ever
+  // account for its own tokens, so without this a $3 subtree reads as $0.04.
+  descendantCostUsd = 0;
   contextPercent?: number;
   currentTool?: string;
   lastText = '';
@@ -376,11 +387,15 @@ class Subagent {
     this.name = name;
     this.task = spec.task;
     this.logPath = logPath;
-    this.maxCostUsd = DEFAULT_MAX_COST_USD;
   }
 
   get alive(): boolean {
     return this.state !== 'exited';
+  }
+
+  // Cost is reported, never enforced; this is the only figure worth showing.
+  get subtreeCostUsd(): number {
+    return this.costUsd + this.descendantCostUsd;
   }
 
   // -- lifecycle ------------------------------------------------------------
@@ -667,8 +682,6 @@ class Subagent {
         if (msg?.role !== 'assistant') return;
         const cost = msg.usage?.cost?.total;
         if (typeof cost === 'number') this.costUsd += cost;
-        if (this.costUsd > this.maxCostUsd)
-          this.breachBudget(`cost limit ${fmtCost(this.maxCostUsd)} exceeded`);
         let text = '';
         for (const part of msg.content ?? []) {
           if (
@@ -730,19 +743,6 @@ class Subagent {
     try {
       this.proc?.stdin?.write(`${JSON.stringify(obj)}\n`);
     } catch {}
-  }
-
-  private breachBudget(reason: string) {
-    if (this.stopping) return;
-    this.stopping = true;
-    this.record('budget', reason);
-    this.send('abort').catch(() => {});
-    emitNews(
-      this,
-      'finished',
-      `budget exceeded: ${reason}\n${cap(this.lastText, SNIPPET_CAP)}`,
-    );
-    void this.stop();
   }
 
   record(kind: string, text: string) {
@@ -810,7 +810,24 @@ function argDigest(tool: string, args: any): string {
   if (typeof args.path === 'string') return args.path;
   if (typeof args.pattern === 'string') return args.pattern;
   const keys = Object.keys(args).slice(0, 3);
-  return keys.map((k) => `${k}=${firstLine(String(args[k]), 400)}`).join(' ');
+  return keys
+    .map((k) => `${k}=${firstLine(scalarish(args[k]), 400)}`)
+    .join(' ');
+}
+
+// String(x) on anything structured is "[object Object]", which is how a nested
+// subagent_spawn — the single most informative call in a tree — rendered in the
+// attach view. JSON is not prettier but it is the only form that says anything.
+function scalarish(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return '[unserializable]';
+    }
+  }
+  return String(value);
 }
 
 // ---------------------------------------------------------------------------
@@ -981,11 +998,20 @@ function childLine(c: Subagent): string {
         : firstLine(c.lastText, 48) || c.state;
   const ctxPct =
     c.contextPercent === undefined ? '' : ` ctx${c.contextPercent}%`;
-  return `${c.name} [${c.state}] t${c.turns} ${fmtCost(c.costUsd)}${ctxPct} idle:${idle} ${where}`;
+  // Only split out the subtree total when there is one, so a flat fleet reads
+  // exactly as it did before.
+  const cost =
+    c.descendantCostUsd > 0
+      ? `${fmtCost(c.subtreeCostUsd)}(+sub)`
+      : fmtCost(c.costUsd);
+  return `${c.name} [${c.state}] t${c.turns} ${cost}${ctxPct} idle:${idle} ${where}`;
 }
 
 function refreshUi() {
-  if (uiTimer) return;
+  // Nobody renders a subagent's status line, and in rpc mode every setStatus and
+  // setWidget is a real line on the stdout its own parent is parsing — twice a
+  // second, for as long as it has children of its own.
+  if (!IS_ROOT || uiTimer) return;
   uiTimer = setTimeout(() => {
     uiTimer = undefined;
     const ui = safeUi();
@@ -999,7 +1025,10 @@ function refreshUi() {
       return;
     }
     uiActive = true;
-    const cost = [...fleet.values()].reduce((sum, c) => sum + c.costUsd, 0);
+    const cost = [...fleet.values()].reduce(
+      (sum, c) => sum + c.subtreeCostUsd,
+      0,
+    );
     ui.setStatus('subagent', `subagents: ${live.length} live ${fmtCost(cost)}`);
     const rows = live.slice(0, 5).map(childLine);
     if (live.length > 5) rows.push(`… ${live.length - 5} more`);
@@ -1010,6 +1039,41 @@ function refreshUi() {
 // ---------------------------------------------------------------------------
 // parent-side: on-disk registry (survives extension rebinding and parent death)
 // ---------------------------------------------------------------------------
+
+// A process only ever sees its own children's usage events, never its
+// grandchildren's, so subtree cost has to cross the process boundary somehow.
+// The registry directory is already keyed by pid and already swept, so each
+// process publishes one number into it — what its whole fleet has spent — and
+// reads the same file for each of its children. One small read per live child
+// every couple of seconds, and it composes to any depth without a protocol.
+let publishedFleetCost = -1;
+
+function fleetCostPath(pid: number): string {
+  return path.join(getAgentDir(), 'subagents', String(pid), 'fleet-cost');
+}
+
+function syncSubtreeCosts() {
+  if (fleet.size === 0) return;
+  for (const child of liveChildren()) {
+    const pid = child.proc?.pid;
+    if (!pid) continue;
+    let published = 0;
+    try {
+      published = Number(fs.readFileSync(fleetCostPath(pid), 'utf-8')) || 0;
+    } catch {
+      continue;
+    }
+    child.descendantCostUsd = published;
+  }
+  const total = [...fleet.values()].reduce((s, c) => s + c.subtreeCostUsd, 0);
+  if (total === publishedFleetCost) return;
+  publishedFleetCost = total;
+  try {
+    fs.mkdirSync(registryDir, { recursive: true });
+    fs.writeFileSync(path.join(registryDir, 'fleet-cost'), String(total));
+  } catch {}
+  refreshUi();
+}
 
 function writeRegistry() {
   try {
@@ -1074,7 +1138,12 @@ function buildSystemPrompt(spec: SpawnSpec): string {
     "You cannot see the caller's conversation. Your task statement is the whole brief.",
     'Report substantive findings in your final assistant message; the caller reads that, not your intermediate output.',
     'Use message_parent to raise a blocking question or a finding the caller needs before you finish.',
-    'You cannot dispatch subagents of your own.',
+    // The child computes this itself from its own env, but it has to be stated:
+    // the dispatch tools are simply absent at the last level, and a model that
+    // planned around having them wastes a turn discovering they are not there.
+    DEPTH + 1 < MAX_DEPTH
+      ? 'You can dispatch subagents of your own with subagent_spawn; they cannot dispatch further.'
+      : 'You cannot dispatch subagents of your own.',
   ];
   // --append-system-prompt suppresses discovery of ~/.pi/agent/APPEND_SYSTEM.md
   // and project .pi/APPEND_SYSTEM.md, so the parent's already-resolved append
@@ -1129,7 +1198,6 @@ async function spawnChild(
   // silently loses project .pi/settings.json, extensions, skills and SYSTEM.md.
   args.push(ctx.isProjectTrusted() ? '--approve' : '--no-approve');
 
-  const depth = Number(process.env[DEPTH_ENV] ?? '0') || 0;
   const invocation = getPiInvocation(args);
   child.start(
     invocation.command,
@@ -1137,7 +1205,7 @@ async function spawnChild(
     ctx.cwd,
     {
       ...process.env,
-      [DEPTH_ENV]: String(depth + 1),
+      [DEPTH_ENV]: String(DEPTH + 1),
       [NAME_ENV]: name,
     },
     tmpDir,
@@ -1153,9 +1221,9 @@ async function spawnChild(
         'died',
         `exited code=${child.exitCode} signal=${child.exitSignal}\n${cap(child.stderrTail, 800)}`,
       );
-      safeUi()?.notify(`subagent ${name} crashed`, 'error');
+      if (IS_ROOT) safeUi()?.notify(`subagent ${name} crashed`, 'error');
     }
-    if (liveChildren().length === 0)
+    if (IS_ROOT && liveChildren().length === 0)
       safeUi()?.notify('all subagents finished', 'info');
   });
 
@@ -1254,7 +1322,7 @@ function renderLog(
     (r) =>
       `[+${fmtAge(r.t)}] ${r.kind.padEnd(10)} ${view === 'transcript' ? r.text : firstLine(r.text, 140)}`,
   );
-  const head = `${child.name} (${view}) — ${shown.length} of ${records.length} matching records, ${child.turns} turns, ${fmtCost(child.costUsd)}`;
+  const head = `${child.name} (${view}) — ${shown.length} of ${records.length} matching records, ${child.turns} turns, ${fmtCost(child.subtreeCostUsd)}`;
   return `${head}\n\n${cap(lines.join('\n'), TOOL_TEXT_CAP)}\n${footer}`;
 }
 
@@ -1262,7 +1330,7 @@ function harvest(child: Subagent): string {
   const files = [...child.filesTouched];
   return [
     `${child.name}: ${child.state === 'exited' ? `exited(${child.exitSignal ?? child.exitCode})` : child.state}`,
-    `turns: ${child.turns}  cost: ${fmtCost(child.costUsd)}  ran: ${fmtAge(Date.now() - child.startedAt)}`,
+    `turns: ${child.turns}  cost: ${fmtCost(child.subtreeCostUsd)}  ran: ${fmtAge(Date.now() - child.startedAt)}`,
     `files modified: ${files.length ? files.join(', ') : '(none detected)'}`,
     '',
     'Last message:',
@@ -1794,7 +1862,6 @@ class AttachView {
           push(`  ~ ${r.text}`, 'warning');
           break;
         case 'error':
-        case 'budget':
           push(`  ! ${firstLine(r.text, inner - 4)}`, 'error');
           break;
         default:
@@ -1838,7 +1905,7 @@ class AttachView {
       return `─${trimmed}${'─'.repeat(Math.max(0, inner + 2 - trimmed.length - 1))}`;
     };
 
-    const title = `${c.name} · ${c.state} · turn ${c.turns} · ${fmtCost(c.costUsd)}${c.model ? ` · ${c.model}` : ''}`;
+    const title = `${c.name} · ${c.state} · turn ${c.turns} · ${fmtCost(c.subtreeCostUsd)}${c.model ? ` · ${c.model}` : ''}`;
     const pos =
       all.length > ATTACH_BODY_ROWS
         ? ` · ${this.offset + body.length}/${all.length}${this.follow ? ' following' : ''}`
@@ -1956,11 +2023,11 @@ async function openAttachView(ctx: ExtensionContext, child: Subagent) {
 }
 
 export default function subagentExtension(pi: ExtensionAPI) {
-  const depth = Number(process.env[DEPTH_ENV] ?? '0') || 0;
-  if (depth > 0) {
-    registerChildTools(pi);
-    return;
-  }
+  // Not two mutually exclusive modes: everything below the root gets the channel
+  // back to its own caller, and everything above the last level gets the
+  // dispatch tools. A middle agent is both at once.
+  if (!IS_ROOT) registerChildTools(pi);
+  if (!CAN_SPAWN) return;
 
   api = pi;
   registryDir = path.join(getAgentDir(), 'subagents', String(process.pid));
@@ -2040,6 +2107,8 @@ export default function subagentExtension(pi: ExtensionAPI) {
     }
   });
 
+  setInterval(syncSubtreeCosts, 2_000).unref?.();
+
   setInterval(() => {
     const now = Date.now();
     for (const child of liveChildren()) {
@@ -2058,29 +2127,32 @@ export default function subagentExtension(pi: ExtensionAPI) {
     }
   }, 30_000).unref?.();
 
-  pi.registerCommand('subagent', {
-    description: 'Watch a running subagent live (no args lists the fleet)',
-    handler: async (args, ctx) => {
-      const wanted = (args ?? '').trim();
-      const all = [...fleet.values()];
-      if (all.length === 0) {
-        ctx.ui.notify('No subagents in this session.', 'info');
-        return;
-      }
-      const child = wanted
-        ? (fleet.get(wanted) ?? all.find((c) => c.name.startsWith(wanted)))
-        : all.find((c) => c.state === 'working') ?? all[all.length - 1];
-      if (!child) {
-        ctx.ui.notify(
-          `No subagent "${wanted}". Known: ${all.map((c) => c.name).join(', ')}`,
-          'error',
-        );
-        return;
-      }
-      uiCtx = ctx;
-      await openAttachView(ctx, child);
-    },
-  });
+  // ctx.ui.custom() resolves to undefined in rpc mode, so the attach view only
+  // means anything where there is a human at a terminal.
+  if (IS_ROOT)
+    pi.registerCommand('subagent', {
+      description: 'Watch a running subagent live (no args lists the fleet)',
+      handler: async (args, ctx) => {
+        const wanted = (args ?? '').trim();
+        const all = [...fleet.values()];
+        if (all.length === 0) {
+          ctx.ui.notify('No subagents in this session.', 'info');
+          return;
+        }
+        const child = wanted
+          ? (fleet.get(wanted) ?? all.find((c) => c.name.startsWith(wanted)))
+          : (all.find((c) => c.state === 'working') ?? all[all.length - 1]);
+        if (!child) {
+          ctx.ui.notify(
+            `No subagent "${wanted}". Known: ${all.map((c) => c.name).join(', ')}`,
+            'error',
+          );
+          return;
+        }
+        uiCtx = ctx;
+        await openAttachView(ctx, child);
+      },
+    });
 
   registerParentTools(pi);
 }
