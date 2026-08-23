@@ -37,6 +37,7 @@ in
     ./modules/yazi.nix
     ./modules/micro.nix
     ./modules/wakapi.nix
+    ./modules/pi.nix
   ];
 
   home.homeDirectory = "/Users/rajrajhans";

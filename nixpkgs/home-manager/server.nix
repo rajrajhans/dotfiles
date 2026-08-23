@@ -10,6 +10,7 @@ in
   imports = [
     ./modules/yazi.nix
     ./modules/micro.nix
+    ./modules/pi.nix
   ];
 
   home.username = username;
