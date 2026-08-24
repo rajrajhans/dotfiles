@@ -8,6 +8,8 @@ import { StringEnum } from '@earendil-works/pi-ai';
 import {
   type ExtensionAPI,
   type ExtensionContext,
+  type Theme,
+  type ThemeColor,
   getAgentDir,
 } from '@earendil-works/pi-coding-agent';
 import { Text } from '@earendil-works/pi-tui';
@@ -340,6 +342,7 @@ interface SpawnSpec {
 class Subagent {
   readonly name: string;
   readonly task: string;
+  readonly model?: string;
   readonly logPath: string;
   readonly startedAt = Date.now();
 
@@ -386,6 +389,7 @@ class Subagent {
   constructor(spec: SpawnSpec, name: string, logPath: string) {
     this.name = name;
     this.task = spec.task;
+    this.model = spec.model;
     this.logPath = logPath;
   }
 
@@ -987,6 +991,28 @@ function drainMailbox(names?: Set<string>): News[] {
     if (names.has(mailbox[i].name)) taken.unshift(...mailbox.splice(i, 1));
   }
   return taken;
+}
+
+function displayState(c: Subagent): string {
+  if (c.state === 'working' && c.stalledReported) return 'stalled';
+  return c.state;
+}
+
+function childLine(c: Subagent): string {
+  const idle = fmtAge(Date.now() - c.lastActivityAt);
+  const where =
+    c.state === 'exited'
+      ? `exited(${c.exitSignal ?? c.exitCode})`
+      : c.currentTool
+        ? `tool:${c.currentTool}`
+        : firstLine(c.lastText, 48) || c.state;
+  const ctxPct =
+    c.contextPercent === undefined ? '' : ` ctx${c.contextPercent}%`;
+  const cost =
+    c.descendantCostUsd > 0
+      ? `${fmtCost(c.subtreeCostUsd)}(+sub)`
+      : fmtCost(c.costUsd);
+  return `${c.name} [${displayState(c)}] t${c.turns} ${cost}${ctxPct} idle:${idle} ${where}`;
 }
 
 function refreshUi() {
@@ -1756,10 +1782,10 @@ function registerParentTools(pi: ExtensionAPI) {
 const ATTACH_BODY_ROWS = 24;
 const SPINNER = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
-// A subagent's work is otherwise invisible: the parent only ever surfaces its
-// final report, and the widget one line. This renders the child's event stream
-// as it arrives, so a human can watch what it is actually doing.
-type ViewLine = { text: string; tone: string };
+// A subagent's work is otherwise summarized in the footer and final report.
+// This renders the child's event stream as it arrives, so a human can watch
+// what it is actually doing.
+type ViewLine = { text: string; tone: ThemeColor | '' };
 
 // Colours are applied after wrapping and truncation, never before: padEnd counts
 // escape bytes, so a coloured line padded by raw length breaks the right border.
@@ -1801,12 +1827,13 @@ class AttachView {
 
   constructor(
     private readonly child: Subagent,
-    private readonly theme: { fg: (c: string, t: string) => string },
+    private readonly theme: Theme,
     private readonly requestRender: () => void,
     private readonly close: () => void,
+    private readonly closeLabel = 'detach',
   ) {}
 
-  private tint(tone: string, text: string): string {
+  private tint(tone: ThemeColor | '', text: string): string {
     if (!tone) return text;
     try {
       return this.theme.fg(tone, text);
@@ -1819,7 +1846,8 @@ class AttachView {
   // is to read what the subagent is doing, which is prose and tool calls.
   private lines(inner: number): ViewLine[] {
     const out: ViewLine[] = [];
-    const push = (text: string, tone = '') => out.push({ text, tone });
+    const push = (text: string, tone: ThemeColor | '' = '') =>
+      out.push({ text, tone });
 
     for (const r of this.child.getRecords()) {
       switch (r.kind) {
@@ -1895,9 +1923,11 @@ class AttachView {
       all.length > ATTACH_BODY_ROWS
         ? ` · ${this.offset + body.length}/${all.length}${this.follow ? ' following' : ''}`
         : '';
-    const help = `j/k scroll · g/G top/bottom · f follow · q detach${pos}`;
+    const help = `j/k scroll · g/G top/bottom · f follow · q ${this.closeLabel}${pos}`;
 
-    const rows = body.length ? body : [{ text: '  (nothing yet)', tone: 'muted' }];
+    const rows: ViewLine[] = body.length
+      ? body
+      : [{ text: '  (nothing yet)', tone: 'muted' }];
     return [
       `┌${rule(title)}┐`,
       ...rows.map(row),
@@ -1957,6 +1987,335 @@ class AttachView {
   invalidate() {}
 }
 
+type FleetScope = 'live' | 'working' | 'all';
+const FLEET_SCOPES: FleetScope[] = ['live', 'working', 'all'];
+const FLEET_BODY_ROWS = 12;
+
+class FleetView {
+  private scope: FleetScope = 'live';
+  private query = '';
+  private queryDraft = '';
+  private searching = false;
+  private selectedName?: string;
+  private selectedIndex = 0;
+  private offset = 0;
+  private attached?: AttachView;
+  private confirmStop?: string;
+  private notice = '';
+
+  constructor(
+    private readonly theme: Theme,
+    private readonly requestRender: () => void,
+    private readonly close: () => void,
+  ) {}
+
+  tick() {
+    if (this.attached) this.attached.tick++;
+  }
+
+  private tint(tone: ThemeColor | '', text: string): string {
+    if (!tone) return text;
+    try {
+      return this.theme.fg(tone, text);
+    } catch {
+      return text;
+    }
+  }
+
+  private children(): Subagent[] {
+    const needle = this.query.toLowerCase();
+    const rank = (child: Subagent) => {
+      if (child.stalledReported && child.state === 'working') return 0;
+      if (child.state === 'working') return 1;
+      if (child.state === 'starting') return 2;
+      if (child.state === 'idle') return 3;
+      return 4;
+    };
+    return [...fleet.values()]
+      .filter((child) => {
+        if (this.scope === 'live' && !child.alive) return false;
+        if (
+          this.scope === 'working'
+          && child.state !== 'working'
+          && child.state !== 'starting'
+        ) return false;
+        if (!needle) return true;
+        return `${child.name}\n${child.task}`.toLowerCase().includes(needle);
+      })
+      .sort((a, b) =>
+        rank(a) - rank(b)
+        || b.lastActivityAt - a.lastActivityAt
+        || a.name.localeCompare(b.name),
+      );
+  }
+
+  private reconcile(children: Subagent[]): Subagent | undefined {
+    if (children.length === 0) {
+      this.selectedName = undefined;
+      this.selectedIndex = 0;
+      this.offset = 0;
+      return undefined;
+    }
+    const stable = this.selectedName
+      ? children.findIndex((child) => child.name === this.selectedName)
+      : -1;
+    if (stable >= 0) this.selectedIndex = stable;
+    this.selectedIndex = Math.max(0, Math.min(this.selectedIndex, children.length - 1));
+    this.selectedName = children[this.selectedIndex].name;
+    if (this.selectedIndex < this.offset) this.offset = this.selectedIndex;
+    if (this.selectedIndex >= this.offset + FLEET_BODY_ROWS) {
+      this.offset = this.selectedIndex - FLEET_BODY_ROWS + 1;
+    }
+    const maxOffset = Math.max(0, children.length - FLEET_BODY_ROWS);
+    this.offset = Math.max(0, Math.min(this.offset, maxOffset));
+    return children[this.selectedIndex];
+  }
+
+  private move(delta: number) {
+    const children = this.children();
+    this.reconcile(children);
+    if (children.length === 0) return;
+    this.selectedIndex = Math.max(
+      0,
+      Math.min(this.selectedIndex + delta, children.length - 1),
+    );
+    this.selectedName = children[this.selectedIndex].name;
+    this.reconcile(children);
+  }
+
+  private cycleScope() {
+    const index = FLEET_SCOPES.indexOf(this.scope);
+    this.scope = FLEET_SCOPES[(index + 1) % FLEET_SCOPES.length];
+    this.selectedName = undefined;
+    this.selectedIndex = 0;
+    this.offset = 0;
+    this.notice = '';
+  }
+
+  private attachSelected() {
+    const selected = this.reconcile(this.children());
+    if (!selected) return;
+    this.attached = new AttachView(
+      selected,
+      this.theme,
+      this.requestRender,
+      () => {
+        this.attached = undefined;
+        this.requestRender();
+      },
+      'back',
+    );
+  }
+
+  private stopSelected() {
+    const selected = this.reconcile(this.children());
+    if (!selected || !selected.alive) return;
+    this.confirmStop = selected.name;
+    this.notice = `Stop ${selected.name}? y confirms; any other key cancels.`;
+  }
+
+  private confirmStopSelected() {
+    const name = this.confirmStop;
+    this.confirmStop = undefined;
+    if (!name) return;
+    const child = fleet.get(name);
+    if (!child || !child.alive) {
+      this.notice = `${name} is no longer running.`;
+      return;
+    }
+    this.notice = `Stopping ${name}…`;
+    void withDeadline<void>(
+      child.stop(),
+      KILL_GRACE_MS + 2_000,
+      () => undefined,
+    ).then(() => {
+      drainMailbox(new Set([name]));
+      writeRegistry();
+      refreshUi();
+      this.notice = `Stopped ${name}.`;
+      this.requestRender();
+    });
+  }
+
+  render(width: number): string[] {
+    if (this.attached) return this.attached.render(width);
+
+    const inner = Math.max(30, width - 4);
+    const all = [...fleet.values()];
+    const children = this.children();
+    this.reconcile(children);
+    const shown = children.slice(this.offset, this.offset + FLEET_BODY_ROWS);
+    const working = all.filter(
+      (child) => child.state === 'working' || child.state === 'starting',
+    ).length;
+    const idle = all.filter((child) => child.state === 'idle').length;
+    const stalled = all.filter(
+      (child) => child.state === 'working' && child.stalledReported,
+    ).length;
+    const cost = all.reduce((sum, child) => sum + child.subtreeCostUsd, 0);
+
+    const row = (plain: string, tone: ThemeColor | '' = '') => {
+      const clipped = plain.length > inner ? plain.slice(0, inner) : plain;
+      const padded = clipped + ' '.repeat(inner - clipped.length);
+      return `│ ${this.tint(tone, padded)} │`;
+    };
+    const rule = (label: string) => {
+      const text = ` ${label} `;
+      const clipped = text.length > inner ? `${text.slice(0, inner - 1)} ` : text;
+      return `─${clipped}${'─'.repeat(Math.max(0, inner + 1 - clipped.length))}`;
+    };
+    const fixed = (text: string, size: number) => {
+      const clipped = text.length > size ? `${text.slice(0, Math.max(0, size - 1))}…` : text;
+      return clipped.padEnd(size);
+    };
+
+    const stateWidth = 9;
+    const nameWidth = Math.max(12, Math.min(30, Math.floor(inner * 0.3)));
+    const turnsWidth = 6;
+    const idleWidth = 8;
+    const costWidth = 9;
+    const fixedWidth = 2 + stateWidth + 1 + nameWidth + 1 + turnsWidth + 1 + idleWidth + 1 + costWidth;
+    const taskWidth = Math.max(0, inner - fixedWidth - 1);
+    const header = [
+      '  ',
+      fixed('state', stateWidth),
+      fixed('name', nameWidth),
+      fixed('turns', turnsWidth),
+      fixed('idle', idleWidth),
+      fixed('cost', costWidth),
+      taskWidth > 8 ? fixed('task', taskWidth) : '',
+    ].filter(Boolean).join(' ');
+
+    const body = shown.map((child, visibleIndex) => {
+      const index = this.offset + visibleIndex;
+      const selected = index === this.selectedIndex;
+      const state = displayState(child);
+      const parts = [
+        selected ? '› ' : '  ',
+        fixed(state, stateWidth),
+        fixed(child.name, nameWidth),
+        fixed(String(child.turns), turnsWidth),
+        fixed(fmtAge(Date.now() - child.lastActivityAt), idleWidth),
+        fixed(fmtCost(child.subtreeCostUsd), costWidth),
+        taskWidth > 8 ? fixed(firstLine(child.task, taskWidth), taskWidth) : '',
+      ].filter(Boolean);
+      const tone: ThemeColor | '' = selected
+        ? 'accent'
+        : state === 'stalled'
+          ? 'warning'
+          : state === 'exited'
+            ? 'muted'
+            : '';
+      return row(parts.join(' '), tone);
+    });
+
+    const empty = this.query
+      ? `No ${this.scope} subagents match “${this.query}”.`
+      : `No ${this.scope} subagents.`;
+    const summary = `${working} working · ${idle} idle${stalled ? ` · ${stalled} stalled` : ''} · ${fmtCost(cost)}`;
+    const position = children.length
+      ? ` · ${this.selectedIndex + 1}/${children.length}`
+      : '';
+    const filter = this.query ? ` · filter:${this.query}` : '';
+    const help = this.searching
+      ? `filter: ${this.queryDraft}█ · Enter apply · Esc cancel`
+      : this.confirmStop
+        ? this.notice
+        : `↑↓/jk select · Enter inspect · Tab ${this.scope} · / filter · s stop · q close${position}${filter}`;
+
+    return [
+      `┌${rule(`Subagents · ${summary}`)}┐`,
+      row(header, 'muted'),
+      ...(body.length ? body : [row(`  ${empty}`, 'muted')]),
+      ...Array.from(
+        { length: Math.max(0, FLEET_BODY_ROWS - Math.max(1, body.length)) },
+        () => row(''),
+      ),
+      ...(this.notice && !this.confirmStop && !this.searching
+        ? [row(firstLine(this.notice, inner), 'muted')]
+        : []),
+      `└${rule(help)}┘`,
+    ];
+  }
+
+  handleInput(data: string) {
+    if (this.attached) {
+      this.attached.handleInput(data);
+      return;
+    }
+
+    let i = 0;
+    while (i < data.length) {
+      const rest = data.slice(i);
+      if (this.searching) {
+        const ch = data[i];
+        if (ch === '\r' || ch === '\n') {
+          this.query = this.queryDraft.trim();
+          this.searching = false;
+          this.selectedName = undefined;
+          this.selectedIndex = 0;
+          this.offset = 0;
+        } else if (ch === '\x1b' || ch === '\x03') {
+          this.searching = false;
+          this.queryDraft = this.query;
+        } else if (ch === '\x7f' || ch === '\b') {
+          this.queryDraft = this.queryDraft.slice(0, -1);
+        } else if (ch === '\x15') {
+          this.queryDraft = '';
+        } else if (ch >= ' ') {
+          this.queryDraft += ch;
+        }
+        i += 1;
+        continue;
+      }
+
+      if (this.confirmStop) {
+        if (data[i].toLowerCase() === 'y') this.confirmStopSelected();
+        else {
+          this.confirmStop = undefined;
+          this.notice = 'Stop cancelled.';
+        }
+        i += 1;
+        continue;
+      }
+
+      if (rest.startsWith('\x1b[A')) {
+        this.move(-1);
+        i += 3;
+      } else if (rest.startsWith('\x1b[B')) {
+        this.move(1);
+        i += 3;
+      } else if (rest.startsWith('\x1b[5~')) {
+        this.move(-FLEET_BODY_ROWS);
+        i += 4;
+      } else if (rest.startsWith('\x1b[6~')) {
+        this.move(FLEET_BODY_ROWS);
+        i += 4;
+      } else {
+        const ch = data[i];
+        if (ch === 'k') this.move(-1);
+        else if (ch === 'j') this.move(1);
+        else if (ch === '\r' || ch === '\n' || ch === 'l') this.attachSelected();
+        else if (ch === '\t') this.cycleScope();
+        else if (ch === '/') {
+          this.searching = true;
+          this.queryDraft = this.query;
+          this.notice = '';
+        } else if (ch === 's') this.stopSelected();
+        else if (ch === 'r') this.notice = 'Refreshed.';
+        else if (ch === 'q' || ch === '\x1b' || ch === '\x03') {
+          this.close();
+          return;
+        }
+        i += 1;
+      }
+    }
+    this.requestRender();
+  }
+
+  invalidate() {}
+}
+
 async function openAttachView(ctx: ExtensionContext, child: Subagent) {
   let listener: (() => void) | undefined;
   let openView: object | undefined;
@@ -1999,6 +2358,48 @@ async function openAttachView(ctx: ExtensionContext, child: Subagent) {
     if (openView) {
       const t = viewTicks.get(openView);
       if (t) attachTicks.delete(t);
+    }
+    if (attachTicks.size === 0 && spinnerTimer) {
+      clearInterval(spinnerTimer);
+      spinnerTimer = undefined;
+    }
+  }
+}
+
+async function openFleetView(ctx: ExtensionContext) {
+  let listener: (() => void) | undefined;
+  let openView: FleetView | undefined;
+  try {
+    await ctx.ui.custom<null>(
+      (tui, theme, _keybindings, done) => {
+        listener = () => tui.requestRender();
+        attachListeners.add(listener);
+        const view = new FleetView(
+          theme,
+          () => tui.requestRender(),
+          () => done(null),
+        );
+        spinnerTimer ??= setInterval(() => {
+          for (const tick of attachTicks) tick();
+          notifyAttach();
+        }, 120);
+        const tickFn = () => view.tick();
+        attachTicks.add(tickFn);
+        viewTicks.set(view, tickFn);
+        openView = view;
+        return view;
+      },
+      {
+        overlay: true,
+        overlayOptions: { anchor: 'center', width: '94%', margin: 1 },
+        onHandle: (handle: { focus: () => void }) => handle.focus(),
+      },
+    );
+  } finally {
+    if (listener) attachListeners.delete(listener);
+    if (openView) {
+      const tick = viewTicks.get(openView);
+      if (tick) attachTicks.delete(tick);
     }
     if (attachTicks.size === 0 && spinnerTimer) {
       clearInterval(spinnerTimer);
@@ -2112,11 +2513,11 @@ export default function subagentExtension(pi: ExtensionAPI) {
     }
   }, 30_000).unref?.();
 
-  // ctx.ui.custom() resolves to undefined in rpc mode, so the attach view only
-  // means anything where there is a human at a terminal.
+  // ctx.ui.custom() resolves to undefined in rpc mode, so fleet and attach
+  // views only mean anything where there is a human at a terminal.
   if (IS_ROOT)
     pi.registerCommand('subagent', {
-      description: 'Watch a running subagent live (no args lists the fleet)',
+      description: 'Browse the subagent fleet or inspect one by name',
       handler: async (args, ctx) => {
         const wanted = (args ?? '').trim();
         const all = [...fleet.values()];
@@ -2124,9 +2525,12 @@ export default function subagentExtension(pi: ExtensionAPI) {
           ctx.ui.notify('No subagents in this session.', 'info');
           return;
         }
-        const child = wanted
-          ? (fleet.get(wanted) ?? all.find((c) => c.name.startsWith(wanted)))
-          : (all.find((c) => c.state === 'working') ?? all[all.length - 1]);
+        uiCtx = ctx;
+        if (!wanted) {
+          await openFleetView(ctx);
+          return;
+        }
+        const child = fleet.get(wanted) ?? all.find((c) => c.name.startsWith(wanted));
         if (!child) {
           ctx.ui.notify(
             `No subagent "${wanted}". Known: ${all.map((c) => c.name).join(', ')}`,
@@ -2134,7 +2538,6 @@ export default function subagentExtension(pi: ExtensionAPI) {
           );
           return;
         }
-        uiCtx = ctx;
         await openAttachView(ctx, child);
       },
     });
