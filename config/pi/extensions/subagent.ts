@@ -839,6 +839,7 @@ const mailbox: News[] = [];
 let flushTimer: NodeJS.Timeout | undefined;
 let uiTimer: NodeJS.Timeout | undefined;
 let uiActive = false;
+let widgetCleared = false;
 let uiCtx: ExtensionContext | undefined;
 let parentBusy = false;
 
@@ -988,40 +989,27 @@ function drainMailbox(names?: Set<string>): News[] {
   return taken;
 }
 
-function childLine(c: Subagent): string {
-  const idle = fmtAge(Date.now() - c.lastActivityAt);
-  const where =
-    c.state === 'exited'
-      ? `exited(${c.exitSignal ?? c.exitCode})`
-      : c.currentTool
-        ? `tool:${c.currentTool}`
-        : firstLine(c.lastText, 48) || c.state;
-  const ctxPct =
-    c.contextPercent === undefined ? '' : ` ctx${c.contextPercent}%`;
-  // Only split out the subtree total when there is one, so a flat fleet reads
-  // exactly as it did before.
-  const cost =
-    c.descendantCostUsd > 0
-      ? `${fmtCost(c.subtreeCostUsd)}(+sub)`
-      : fmtCost(c.costUsd);
-  return `${c.name} [${c.state}] t${c.turns} ${cost}${ctxPct} idle:${idle} ${where}`;
-}
-
 function refreshUi() {
-  // Nobody renders a subagent's status line, and in rpc mode every setStatus and
-  // setWidget is a real line on the stdout its own parent is parsing — twice a
-  // second, for as long as it has children of its own.
+  // Nobody renders a subagent's status line, and in rpc mode every setStatus is
+  // a real line on the stdout its own parent is parsing — twice a second, for as
+  // long as it has children of its own. The root keeps only the footer status;
+  // the full fleet remains available through /subagent.
   if (!IS_ROOT || uiTimer) return;
   uiTimer = setTimeout(() => {
     uiTimer = undefined;
     const ui = safeUi();
     if (!ui) return;
+    // Clear a widget left by an older extension runtime once per session. Do
+    // not publish a replacement widget; the footer is the persistent surface.
+    if (!widgetCleared) {
+      ui.setWidget('subagent', undefined);
+      widgetCleared = true;
+    }
     const live = liveChildren();
     if (live.length === 0) {
       if (!uiActive) return;
       uiActive = false;
       ui.setStatus('subagent', undefined);
-      ui.setWidget('subagent', undefined);
       return;
     }
     uiActive = true;
@@ -1030,9 +1018,6 @@ function refreshUi() {
       0,
     );
     ui.setStatus('subagent', `subagents: ${live.length} live ${fmtCost(cost)}`);
-    const rows = live.slice(0, 5).map(childLine);
-    if (live.length > 5) rows.push(`… ${live.length - 5} more`);
-    ui.setWidget('subagent', ['── subagents ──', ...rows]);
   }, 500);
 }
 
@@ -2043,6 +2028,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
 
   pi.on('session_start', async (_event, ctx) => {
     uiCtx = ctx;
+    widgetCleared = false;
     shuttingDown = false;
     sessionDir = path.join(
       getAgentDir(),
@@ -2103,7 +2089,6 @@ export default function subagentExtension(pi: ExtensionAPI) {
     if (uiActive) {
       uiActive = false;
       safeUi()?.setStatus('subagent', undefined);
-      safeUi()?.setWidget('subagent', undefined);
     }
   });
 
