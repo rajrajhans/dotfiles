@@ -50,6 +50,11 @@ in
   home.file.".local/bin/claude".source = "${pkgs.callPackage ../claude-code.nix { }}/bin/claude";
   home.file.".local/bin/statusline.sh".source = "${pkgs.callPackage ../statusline.nix { }}/bin/statusline.sh";
   home.file.".local/bin/syscheck" = { source = ../../scripts/syscheck; executable = true; };
+  # tokmeter's HUD launcher drops a copy here so GUI (Spotlight/Dock) launches find a
+  # CLI without direnv's PATH. ~/.local/bin precedes ~/.nix-profile/bin, so that copy
+  # shadows the flake build and goes stale on every tokmeter bump. Own the path here
+  # to keep it pinned to the current input.
+  home.file.".local/bin/tokmeter".source = "${tokmeter}/bin/tokmeter";
   # CLI wrapper that targets the tailnet sidecar's tailscaled socket, e.g.
   #   tsidecar up --hostname=mac-tailnet-sidecar ; tsidecar status
   home.file.".local/bin/tsidecar" = { source = ../../scripts/tsidecar; executable = true; };
