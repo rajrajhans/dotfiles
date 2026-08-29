@@ -53,6 +53,7 @@ in
     # Development tools
     python3
     nodejs
+    (pkgs.callPackage ../antigravity-cli.nix { })
     (pkgs.callPackage ../claude-code.nix { })
     (pkgs.callPackage ../codex.nix { })
     (pkgs.callPackage ../grok-build.nix { })
@@ -186,6 +187,7 @@ in
       codex = "codex --dangerously-bypass-approvals-and-sandbox";
       cx = "codex";
       cxr = "cx resume"; # session picker; `cxr --last` for the most recent
+      agy = "agy --dangerously-skip-permissions";
     };
     initExtra = ''
       # PATH
