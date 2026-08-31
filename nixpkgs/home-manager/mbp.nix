@@ -260,6 +260,7 @@ in
     tealdeer
     ffmpeg_6-full
     gifsicle
+    inter
     pkgs.nerd-fonts.fira-code
     zoxide
     direnv
