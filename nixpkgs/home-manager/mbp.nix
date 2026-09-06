@@ -58,6 +58,10 @@ in
   # CLI wrapper that targets the tailnet sidecar's tailscaled socket, e.g.
   #   tsidecar up --hostname=mac-tailnet-sidecar ; tsidecar status
   home.file.".local/bin/tsidecar" = { source = ../../scripts/tsidecar; executable = true; };
+  # Offline speech-to-text: ffmpeg-decodes any audio file, then runs whisper.cpp.
+  # whisper-cli only reads 16kHz mono WAV (nixpkgs builds it without ffmpeg support
+  # on darwin), so the decode has to happen outside it. See scripts/transcribe.
+  home.file.".local/bin/transcribe" = { source = ../../scripts/transcribe; executable = true; };
 
   # PAC served over http by the caddy agent below. Single source of truth; kept in its
   # own directory so caddy's file server only ever exposes this one file.
@@ -259,6 +263,10 @@ in
     fastfetch
     tealdeer
     ffmpeg_6-full
+    # Speech-to-text. Built with Metal + CoreML on aarch64-darwin, so the encoder
+    # runs on the ANE and decoding on the GPU. Provides whisper-cli /
+    # whisper-cpp-download-ggml-model, both used by scripts/transcribe.
+    whisper-cpp
     gifsicle
     inter
     pkgs.nerd-fonts.fira-code

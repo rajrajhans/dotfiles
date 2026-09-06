@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+# Offline speech-to-text via whisper.cpp (Metal/CoreML accelerated on Apple Silicon).
+#
+# whisper-cli itself only reads 16 kHz mono WAV — nixpkgs builds it without ffmpeg
+# support on darwin (withFFmpegSupport is Linux-only). This wrapper does the ffmpeg
+# decode, keeps a shared model cache, and writes the transcript next to the input.
+#
+# Usage:
+#   transcribe meeting.mp3                     # -> meeting.txt
+#   transcribe -f srt -l en talk.m4a           # -> talk.srt, forced English
+#   transcribe -m base.en -o /tmp *.mp3        # smaller model, transcripts in /tmp
+#   transcribe -- --help                       # everything after -- goes to whisper-cli
+#
+# Models are downloaded on first use into WHISPER_MODELS_DIR
+# (default ~/.local/share/whisper-models). Run `whisper-cpp-download-ggml-model`
+# with no args to see the full list of model names.
+
+set -euo pipefail
+
+MODEL="${WHISPER_MODEL:-large-v3-turbo}"
+MODELS_DIR="${WHISPER_MODELS_DIR:-$HOME/.local/share/whisper-models}"
+FORMAT="txt"
+LANG="auto"
+OUTDIR=""
+
+usage() {
+  sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'
+  exit "${1:-0}"
+}
+
+while getopts ":m:f:l:o:h" opt; do
+  case "$opt" in
+    m) MODEL="$OPTARG" ;;
+    f) FORMAT="$OPTARG" ;;
+    l) LANG="$OPTARG" ;;
+    o) OUTDIR="$OPTARG" ;;
+    h) usage 0 ;;
+    :) echo "error: -$OPTARG needs an argument" >&2; usage 1 ;;
+    \?) echo "error: unknown flag -$OPTARG" >&2; usage 1 ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+case "$FORMAT" in
+  txt) OUT_FLAG="--output-txt" ;;
+  srt) OUT_FLAG="--output-srt" ;;
+  vtt) OUT_FLAG="--output-vtt" ;;
+  json) OUT_FLAG="--output-json" ;;
+  csv) OUT_FLAG="--output-csv" ;;
+  lrc) OUT_FLAG="--output-lrc" ;;
+  *) echo "error: -f must be one of txt srt vtt json csv lrc" >&2; exit 1 ;;
+esac
+
+[ $# -gt 0 ] || usage 1
+
+for bin in whisper-cli ffmpeg whisper-cpp-download-ggml-model; do
+  command -v "$bin" >/dev/null || {
+    echo "error: $bin not found in PATH (is whisper-cpp installed via home-manager?)" >&2
+    exit 1
+  }
+done
+
+model_path="$MODELS_DIR/ggml-$MODEL.bin"
+if [ ! -f "$model_path" ]; then
+  mkdir -p "$MODELS_DIR"
+  echo "==> fetching whisper model '$MODEL' into $MODELS_DIR" >&2
+  whisper-cpp-download-ggml-model "$MODEL" "$MODELS_DIR" >&2
+fi
+
+# Physical performance cores; whisper gains nothing from the efficiency cores.
+threads="$(sysctl -n hw.perflevel0.physicalcpu 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)"
+
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+
+status=0
+for input in "$@"; do
+  if [ ! -f "$input" ]; then
+    echo "error: no such file: $input" >&2
+    status=1
+    continue
+  fi
+
+  base="$(basename "${input%.*}")"
+  dest_dir="${OUTDIR:-$(dirname "$input")}"
+  mkdir -p "$dest_dir"
+
+  wav="$tmpdir/$base.wav"
+  echo "==> decoding $input" >&2
+  ffmpeg -hide_banner -loglevel error -y -i "$input" -ar 16000 -ac 1 -c:a pcm_s16le "$wav"
+
+  echo "==> transcribing $input ($MODEL, $threads threads)" >&2
+  whisper-cli \
+    --model "$model_path" \
+    --language "$LANG" \
+    --threads "$threads" \
+    --print-progress \
+    "$OUT_FLAG" \
+    --output-file "$dest_dir/$base" \
+    --file "$wav"
+
+  rm -f "$wav"
+  echo "==> wrote $dest_dir/$base.$FORMAT" >&2
+done
+
+exit "$status"
