@@ -1,19 +1,6 @@
 #!/usr/bin/env bash
-# Offline speech-to-text via whisper.cpp (Metal/CoreML accelerated on Apple Silicon).
-#
-# whisper-cli itself only reads 16 kHz mono WAV — nixpkgs builds it without ffmpeg
-# support on darwin (withFFmpegSupport is Linux-only). This wrapper does the ffmpeg
-# decode, keeps a shared model cache, and writes the transcript next to the input.
-#
-# Usage:
-#   transcribe meeting.mp3                     # -> meeting.txt
-#   transcribe -f srt -l en talk.m4a           # -> talk.srt, forced English
-#   transcribe -m base.en -o /tmp *.mp3        # smaller model, transcripts in /tmp
-#   transcribe -- --help                       # everything after -- goes to whisper-cli
-#
-# Models are downloaded on first use into WHISPER_MODELS_DIR
-# (default ~/.local/share/whisper-models). Run `whisper-cpp-download-ggml-model`
-# with no args to see the full list of model names.
+# Offline speech-to-text via whisper.cpp. whisper-cli only reads 16kHz mono WAV
+# (nixpkgs builds it without ffmpeg support on darwin), so ffmpeg decodes first.
 
 set -euo pipefail
 
@@ -24,7 +11,24 @@ LANG="auto"
 OUTDIR=""
 
 usage() {
-  sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'
+  cat <<'EOF'
+transcribe — offline speech-to-text via whisper.cpp
+
+Usage:
+  transcribe [-m MODEL] [-f FORMAT] [-l LANG] [-o OUTDIR] FILE...
+
+  -m  model name (default large-v3-turbo), downloaded on first use into
+      ~/.local/share/whisper-models. Run whisper-cpp-download-ggml-model
+      with no arguments to list the available names.
+  -f  txt (default) | srt | vtt | json | csv | lrc
+  -l  language code, or auto (default)
+  -o  output directory (default: alongside each input file)
+
+Examples:
+  transcribe meeting.mp3                 # -> meeting.txt
+  transcribe -f srt -l en talk.m4a       # -> talk.srt, forced English
+  transcribe -m base.en -o /tmp *.mp3
+EOF
   exit "${1:-0}"
 }
 
@@ -67,7 +71,7 @@ if [ ! -f "$model_path" ]; then
   whisper-cpp-download-ggml-model "$MODEL" "$MODELS_DIR" >&2
 fi
 
-# Physical performance cores; whisper gains nothing from the efficiency cores.
+# Physical performance cores only; whisper gains nothing from the efficiency cores.
 threads="$(sysctl -n hw.perflevel0.physicalcpu 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)"
 
 tmpdir="$(mktemp -d)"
