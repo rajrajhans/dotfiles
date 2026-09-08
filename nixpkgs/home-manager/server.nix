@@ -186,6 +186,8 @@ in
       cfable = "c --model fable";
       codex = "codex --dangerously-bypass-approvals-and-sandbox";
       cx = "codex";
+      cxsol = "cx --model gpt-5.6-sol -c model_reasoning_effort=high";
+      cxastra = "cx --model gpt-6-astra";
       cxr = "cx resume"; # session picker; `cxr --last` for the most recent
       agy = "agy --dangerously-skip-permissions";
     };

@@ -65,6 +65,8 @@ alias chaiku='c --model haiku'
 alias cfable='c --model fable'
 alias codex='codex --dangerously-bypass-approvals-and-sandbox'
 alias cx='codex'
+alias cxsol='cx --model gpt-5.6-sol -c model_reasoning_effort=high'
+alias cxastra='cx --model gpt-6-astra'
 alias cxr='cx resume' # session picker; `cxr --last` for the most recent
 alias agy='agy --dangerously-skip-permissions'
 
