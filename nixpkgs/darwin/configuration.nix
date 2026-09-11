@@ -97,7 +97,6 @@
       # dev tools
       "iterm2"
       "cursor"
-      "antigravity-cli"
       "sublime-text"
       "docker"
       "dbeaver-community"

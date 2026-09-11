@@ -53,7 +53,6 @@ in
     # Development tools
     python3
     nodejs
-    (pkgs.callPackage ../antigravity-cli.nix { })
     (pkgs.callPackage ../claude-code.nix { })
     (pkgs.callPackage ../codex.nix { })
     (pkgs.callPackage ../grok-build.nix { })
@@ -189,7 +188,6 @@ in
       cxsol = "cx --model gpt-5.6-sol -c model_reasoning_effort=high";
       cxastra = "cx --model gpt-6-astra";
       cxr = "cx resume"; # session picker; `cxr --last` for the most recent
-      agy = "agy --dangerously-skip-permissions";
     };
     initExtra = ''
       # PATH
