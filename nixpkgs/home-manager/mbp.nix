@@ -16,6 +16,12 @@ let
   tailnetSidecarPacPort = "1056";
   tailnetSidecarPacUrl = "http://127.0.0.1:${tailnetSidecarPacPort}/tailnet-sidecar.pac";
 
+  # Keep the shared app-server on the same Nix-pinned Codex build as the CLI.
+  # The upstream `app-server daemon` supervisor only accepts its mutable,
+  # standalone installation, so launchd supervises app-server directly instead.
+  codexPackage = pkgs.callPackage ../codex.nix { };
+  codexAppServerStateDir = "${config.home.homeDirectory}/.local/state/codex-app-server";
+
   # Bridge a local SOCKS port through the tailnet sidecar to a Fly exit-node proxy.
   mkExitRelay = { label, port, targetHost }: {
     enable = true;
@@ -130,6 +136,11 @@ in
     run /bin/mkdir -p "${tailnetSidecarDir}/state"
   '';
 
+  # launchd will not create the parent directories for its log paths.
+  home.activation.codexAppServerStateDir = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    run /bin/mkdir -p "${codexAppServerStateDir}"
+  '';
+
   # Persistent scratch/working dir for the dotfiles repo. Gitignored (see
   # .gitignore `/tmp/`) and (re)created on every home-manager switch —
   # Claude Code is told to use it instead of the session scratchpad (CLAUDE.md).
@@ -153,6 +164,48 @@ in
   # https://github.com/nix-community/nix-direnv#via-home-manager
   programs.direnv.enable = true;
   programs.direnv.nix-direnv.enable = true;
+
+  # Nix-native equivalent of `codex app-server daemon start`. The hidden
+  # --remote-control flag makes `codex --remote unix:// ...` use the default
+  # ~/.codex/app-server-control/app-server-control.sock endpoint.
+  launchd.agents.codexAppServer = {
+    enable = true;
+    config = {
+      Label = "com.rajrajhans.codex-app-server";
+      ProgramArguments = [
+        "${codexPackage}/bin/codex"
+        "app-server"
+        "--listen"
+        "unix://"
+        "--remote-control"
+      ];
+      EnvironmentVariables = {
+        HOME = config.home.homeDirectory;
+        LANG = "en_IN.UTF-8";
+        PATH = lib.concatStringsSep ":" [
+          "${config.home.homeDirectory}/.npm-global/bin"
+          "${config.home.homeDirectory}/.local/bin"
+          "/opt/homebrew/bin"
+          "/opt/homebrew/sbin"
+          "${config.home.profileDirectory}/bin"
+          "/run/current-system/sw/bin"
+          "/nix/var/nix/profiles/default/bin"
+          "/usr/local/bin"
+          "/usr/bin"
+          "/bin"
+          "/usr/sbin"
+          "/sbin"
+          "${config.home.homeDirectory}/.cargo/bin"
+        ];
+        SHELL = "/bin/zsh";
+      };
+      RunAtLoad = true;
+      KeepAlive = true;
+      ThrottleInterval = 5;
+      StandardOutPath = "${codexAppServerStateDir}/stdout.log";
+      StandardErrorPath = "${codexAppServerStateDir}/stderr.log";
+    };
+  };
 
   launchd.agents.noTunes = {
     enable = true;
@@ -323,7 +376,7 @@ in
     (pkgs.callPackage ../alttab.nix { })
     (pkgs.callPackage ../ccusage.nix { })
     (pkgs.callPackage ../claude-code.nix { })
-    (pkgs.callPackage ../codex.nix { })
+    codexPackage
     (pkgs.callPackage ../cursor-agent.nix { })
     (pkgs.callPackage ../grok-build.nix { })
     (pkgs.callPackage ../pi.nix { })
