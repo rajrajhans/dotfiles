@@ -64,7 +64,36 @@ alias csonnet='c --model sonnet'
 alias chaiku='c --model haiku'
 alias cfable='c --model fable'
 alias codex='codex --dangerously-bypass-approvals-and-sandbox'
-alias cx='codex'
+# Use the shared, Nix-managed app-server. `kickstart` without `-k` is
+# idempotent: it starts a stopped agent without restarting a running one.
+cx() {
+	local service="gui/$(id -u)/com.rajrajhans.codex-app-server"
+	local attempt ready
+
+	if ! launchctl kickstart "$service" >/dev/null 2>&1; then
+		print -u2 "cx: failed to start the Codex app-server launchd agent"
+		return 1
+	fi
+
+	# launchctl can return before app-server has bound its Unix socket.
+	for attempt in {1..20}; do
+		if command codex app-server daemon version >/dev/null 2>&1; then
+			ready=1
+			break
+		fi
+		sleep 0.1
+	done
+
+	if [[ -z "$ready" ]]; then
+		print -u2 "cx: Codex app-server did not become ready"
+		return 1
+	fi
+
+	command codex \
+		--dangerously-bypass-approvals-and-sandbox \
+		--remote unix:// \
+		"$@"
+}
 alias cxsol='cx --model gpt-5.6-sol -c model_reasoning_effort=high'
 alias cxastra='cx --model gpt-6-astra'
 alias cxr='cx resume' # session picker; `cxr --last` for the most recent
