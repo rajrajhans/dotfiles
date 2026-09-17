@@ -38,7 +38,8 @@ stdenv.mkDerivation {
       --set DISABLE_NON_ESSENTIAL_MODEL_CALLS 1 \
       --set CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY 1 \
       --set CLAUDE_CODE_MAX_OUTPUT_TOKENS 63000 \
-      --set CLAUDE_CODE_NO_FLICKER 1
+      --set CLAUDE_CODE_NO_FLICKER 1 \
+      --set CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS 80
   '';
 
   meta = {
