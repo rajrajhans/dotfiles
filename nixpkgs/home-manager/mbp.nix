@@ -318,6 +318,7 @@ in
     whisper-cpp  # speech-to-text; see scripts/transcribe
     gifsicle
     inter
+    (pkgs.callPackage ../anton.nix { })
     pkgs.nerd-fonts.fira-code
     zoxide
     direnv
