@@ -92,6 +92,7 @@ cx() {
 	command codex \
 		--dangerously-bypass-approvals-and-sandbox \
 		--remote unix:// \
+		--cd "$PWD" \
 		"$@"
 }
 alias cxsol='cx --model gpt-5.6-sol -c model_reasoning_effort=high'
