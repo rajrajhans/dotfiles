@@ -69,6 +69,12 @@ alias codex='codex --dangerously-bypass-approvals-and-sandbox'
 cx() {
 	local service="gui/$(id -u)/com.rajrajhans.codex-app-server"
 	local attempt ready
+	local -a permission_args
+	# App-server resumes retain the session's permissions and reject overrides,
+	# even when the "remote" endpoint is a Unix socket on this Mac.
+	if [[ "${1-}" != resume ]]; then
+		permission_args=(--dangerously-bypass-approvals-and-sandbox)
+	fi
 
 	if ! launchctl kickstart "$service" >/dev/null 2>&1; then
 		print -u2 "cx: failed to start the Codex app-server launchd agent"
@@ -90,7 +96,7 @@ cx() {
 	fi
 
 	command codex \
-		--dangerously-bypass-approvals-and-sandbox \
+		"${permission_args[@]}" \
 		--remote unix:// \
 		--cd "$PWD" \
 		"$@"
