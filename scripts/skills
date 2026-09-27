@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+"""Compact inventory of skill files in a directory (not an agent session)."""
+
+import argparse
+import os
+from pathlib import Path
+import shutil
+import sys
+import unicodedata
+
+import yaml
+
+
+SOURCES = (
+    ("CLAUDE", ".claude/skills"),
+    ("CODEX", ".agents/skills"),
+    ("CODEX", ".codex/skills"),
+)
+
+
+def clean(value):
+    text = " ".join(str(value).split())
+    return "".join(c for c in text if not unicodedata.category(c).startswith("C"))
+
+
+def width(text):
+    return sum(0 if unicodedata.combining(c) else
+               2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in text)
+
+
+def clip(text, limit):
+    if width(text) <= limit:
+        return text
+    result = ""
+    for char in text:
+        if width(result + char) > limit - 1:
+            break
+        result += char
+    return result + "…"
+
+
+def metadata(path):
+    try:
+        lines = path.read_text(encoding="utf-8-sig").splitlines()
+        data = {}
+        if lines and lines[0].strip() == "---":
+            end = next(i for i in range(1, len(lines)) if lines[i].strip() in ("---", "..."))
+            data = yaml.safe_load("\n".join(lines[1:end])) or {}
+        if not isinstance(data, dict):
+            raise ValueError("frontmatter must be a mapping")
+        return clean(data.get("name") or path.parent.name), clean(data.get("description") or "No description")
+    except (OSError, UnicodeError, yaml.YAMLError, ValueError, StopIteration):
+        return clean(path.parent.name), "Unreadable skill or invalid frontmatter"
+
+
+def discover(root):
+    groups = []
+    for agent, relative in SOURCES:
+        folder = root / relative
+        rows = []
+        seen = set()
+        # Follow linked skill folders, while pruning cycles and duplicate targets.
+        for directory, dirs, files in os.walk(folder, followlinks=True):
+            real = Path(directory).resolve()
+            if real in seen:
+                dirs[:] = []
+                continue
+            seen.add(real)
+            dirs[:] = sorted(d for d in dirs if not d.startswith("."))
+            if "SKILL.md" in files:
+                path = Path(directory) / "SKILL.md"
+                rows.append((*metadata(path), path))
+                dirs[:] = []
+        if rows:
+            groups.append((agent, relative, sorted(rows, key=lambda row: (row[0].casefold(), str(row[2])))))
+    return groups
+
+
+def main():
+    parser = argparse.ArgumentParser(prog="skills", description=__doc__, epilog="Scans .claude/skills, .agents/skills, and .codex/skills. Excludes global and plugin skills.")
+    parser.add_argument("directory", nargs="?", default=".", help="directory to inspect (default: cwd)")
+    parser.add_argument("-l", "--long", action="store_true", help="show full descriptions and file paths")
+    args = parser.parse_args()
+    root = Path(args.directory).expanduser().resolve()
+    if not root.is_dir():
+        parser.error(f"not a directory: {root}")
+    groups = discover(root)
+    color = sys.stdout.isatty() and "NO_COLOR" not in os.environ and os.environ.get("TERM") != "dumb"
+    columns = max(12, shutil.get_terminal_size((88, 24)).columns)
+
+    def style(text, code):
+        return f"\033[{code}m{text}\033[0m" if color else text
+
+    def line(text, code="0"):
+        print(style(text if args.long else clip(text, columns), code))
+
+    try:
+        location = "~/" + str(root.relative_to(Path.home()))
+    except ValueError:
+        location = str(root)
+    total = sum(len(rows) for _, _, rows in groups)
+    print()
+    line(f"  {clean(location)} · {total} skill{'s' if total != 1 else ''}", "1")
+    line("  " + "─" * min(columns - 2, 72), "2")
+    if not groups:
+        line("  No local skills found.", "2")
+        for _, relative in SOURCES:
+            line(f"  checked {relative}", "2")
+    for agent, relative, rows in groups:
+        print()
+        line(f"  {agent}  {len(rows)} · {relative}", "1;36" if agent == "CODEX" else "1;33")
+        name_width = min(max(width(name) for name, _, _ in rows), 28, max(4, columns // 3))
+        for name, description, path in rows:
+            label = clip(name, name_width)
+            label += " " * (name_width - width(label))
+            if args.long:
+                line(f"    {name} — {description}")
+                line(f"      {clean(path.relative_to(root))}", "2")
+            else:
+                line(f"    {label}  {description}")
+    print()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except BrokenPipeError:
+        sys.exit(0)

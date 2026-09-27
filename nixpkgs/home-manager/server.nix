@@ -8,6 +8,7 @@ let
 in
 {
   imports = [
+    ./modules/skills.nix
     ./modules/yazi.nix
     ./modules/micro.nix
     ./modules/pi.nix

@@ -34,6 +34,24 @@ sudo darwin-rebuild switch --flake .#mbp
 home-manager switch --flake .#mbp
 ```
 
+## Skill listing
+
+`skills` (or `sk`) shows a compact, colored inventory of the current directory's
+`.claude/skills`, `.agents/skills`, and legacy `.codex/skills` folders. It reads
+`SKILL.md` names and descriptions, including nested and symlinked skill folders.
+It lists local files, not the agent's effective session skills: parent directories,
+global skills, and installed plugins are excluded.
+
+```sh
+skills                  # current directory
+sk ~/projects/my-app    # another directory
+sk --long               # full descriptions and source paths
+```
+
+Colors are disabled when piped or when `NO_COLOR` is set. Both home-manager
+profiles install the command and alias; apply with `home-manager switch --flake .#mbp`
+(or `.#server` on Linux), then open a new shell.
+
 ## Profile selection
 
 `setup_nix.sh` picks the profile from `uname`:
