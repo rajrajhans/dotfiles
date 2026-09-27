@@ -42,6 +42,10 @@ home-manager switch --flake .#mbp
 It lists local files, not the agent's effective session skills: parent directories,
 global skills, and installed plugins are excluded.
 
+When `docs/recipes/` contains visible files or directories, a **RECIPES** section
+lists their names (and relative paths with `--long`). Missing or empty recipe
+folders leave the output unchanged.
+
 ```sh
 skills                  # current directory
 sk ~/projects/my-app    # another directory

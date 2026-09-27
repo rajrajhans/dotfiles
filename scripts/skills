@@ -76,8 +76,19 @@ def discover(root):
     return groups
 
 
+def recipes(root):
+    folder = root / "docs/recipes"
+    if not folder.is_dir():
+        return []
+    return sorted(
+        (path for path in folder.iterdir()
+         if not path.name.startswith(".") and (path.is_file() or path.is_dir())),
+        key=lambda path: (path.name.casefold(), path.name),
+    )
+
+
 def main():
-    parser = argparse.ArgumentParser(prog="skills", description=__doc__, epilog="Scans .claude/skills, .agents/skills, and .codex/skills. Excludes global and plugin skills.")
+    parser = argparse.ArgumentParser(prog="skills", description=__doc__, epilog="Scans .claude/skills, .agents/skills, .codex/skills, and docs/recipes. Excludes global and plugin skills.")
     parser.add_argument("directory", nargs="?", default=".", help="directory to inspect (default: cwd)")
     parser.add_argument("-l", "--long", action="store_true", help="show full descriptions and file paths")
     args = parser.parse_args()
@@ -85,6 +96,7 @@ def main():
     if not root.is_dir():
         parser.error(f"not a directory: {root}")
     groups = discover(root)
+    recipe_paths = recipes(root)
     color = sys.stdout.isatty() and "NO_COLOR" not in os.environ and os.environ.get("TERM") != "dumb"
     columns = max(12, shutil.get_terminal_size((88, 24)).columns)
 
@@ -118,6 +130,13 @@ def main():
                 line(f"      {clean(path.relative_to(root))}", "2")
             else:
                 line(f"    {label}  {description}")
+    if recipe_paths:
+        print()
+        line(f"  RECIPES  {len(recipe_paths)} · docs/recipes", "1;35")
+        for path in recipe_paths:
+            line(f"    {clean(path.name)}{'/' if path.is_dir() else ''}")
+            if args.long:
+                line(f"      {clean(path.relative_to(root))}", "2")
     print()
 
 
