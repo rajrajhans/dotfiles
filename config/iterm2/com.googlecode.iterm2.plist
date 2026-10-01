@@ -1403,13 +1403,6 @@
 			</array>
 			<key>Keyboard Map</key>
 			<dict>
-				<key>0x5c-0x100000-0x2a</key>
-				<dict>
-					<key>Action</key>
-					<integer>29</integer>
-					<key>Text</key>
-					<string>9750A9C6-B8A7-4B7E-A4C9-BBC76EC47E12</string>
-				</dict>
 				<key>0x2a-0x200000-0x0</key>
 				<dict>
 					<key>Action</key>
@@ -1577,6 +1570,13 @@
 					<integer>12</integer>
 					<key>Text</key>
 					<string>9</string>
+				</dict>
+				<key>0x5c-0x100000-0x2a</key>
+				<dict>
+					<key>Action</key>
+					<integer>29</integer>
+					<key>Text</key>
+					<string>9750A9C6-B8A7-4B7E-A4C9-BBC76EC47E12</string>
 				</dict>
 				<key>0x7f-0x100000-0x0</key>
 				<dict>
@@ -2352,13 +2352,6 @@
 			</array>
 			<key>Keyboard Map</key>
 			<dict>
-				<key>0x5c-0x100000-0x2a</key>
-				<dict>
-					<key>Action</key>
-					<integer>29</integer>
-					<key>Text</key>
-					<string>C45311A5-E819-4C0A-8BC6-449534C930E3</string>
-				</dict>
 				<key>0x2a-0x200000-0x0</key>
 				<dict>
 					<key>Action</key>
@@ -2526,6 +2519,13 @@
 					<integer>12</integer>
 					<key>Text</key>
 					<string>9</string>
+				</dict>
+				<key>0x5c-0x100000-0x2a</key>
+				<dict>
+					<key>Action</key>
+					<integer>29</integer>
+					<key>Text</key>
+					<string>C45311A5-E819-4C0A-8BC6-449534C930E3</string>
 				</dict>
 				<key>0x7f-0x100000-0x0</key>
 				<dict>
@@ -2980,7 +2980,7 @@
 	<key>Print In Black And White</key>
 	<true/>
 	<key>ShowFullScreenTabBar</key>
-	<true/>
+	<false/>
 	<key>SoundForEsc</key>
 	<false/>
 	<key>VisualIndicatorForEsc</key>
