@@ -33,7 +33,10 @@ stdenv.mkDerivation {
 
   postFixup = ''
     wrapProgram $out/bin/claude \
-      --set DISABLE_AUTOUPDATER 1 \
+      --set DISABLE_UPDATES 1 \
+      --set CLAUDE_AFK_TIMEOUT_MS 60000 \
+      --set CLAUDE_CODE_EFFORT_LEVEL high \
+      --set CLAUDE_CODE_SUBAGENT_MODEL claude-opus-5-5 \
       --set CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION false \
       --set DISABLE_NON_ESSENTIAL_MODEL_CALLS 1 \
       --set CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY 1 \
