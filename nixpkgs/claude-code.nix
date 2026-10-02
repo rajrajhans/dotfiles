@@ -43,6 +43,8 @@ stdenv.mkDerivation {
       --set CLAUDE_CODE_MAX_OUTPUT_TOKENS 63000 \
       --set CLAUDE_CODE_NO_FLICKER 1 \
       --set CLAUDE_CODE_DISABLE_ARTIFACT 1 \
+      --set CLAUDE_CODE_SEND_FEEDBACK false \
+      --set DISABLE_FEEDBACK_COMMAND 1 \
       --set CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS 80
   '';
 
