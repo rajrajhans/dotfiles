@@ -78,8 +78,11 @@
   homebrew = {
     enable = true;
     onActivation = {
-      autoUpdate = true;
-      upgrade = true;
+      # Activation only installs what's missing; it must not refresh taps or
+      # upgrade (which quits/restarts running apps). `./setup_nix.sh --upgrade`
+      # does `brew update && brew upgrade` explicitly.
+      autoUpdate = false;
+      upgrade = false;
       # "uninstall" removes brews/casks not in this file; preferences in
       # ~/Library/... are left intact (unlike "zap").
       cleanup = "uninstall";

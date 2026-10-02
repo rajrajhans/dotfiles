@@ -7,7 +7,7 @@ Personal dotfiles. Two Nix layers:
 
 Nix is **Determinate Nix**; nix-darwin defers to it (`nix.enable = false`).
 
-Apply everything: `./setup_nix.sh` (picks profile from `uname`).
+Apply everything: `./setup_nix.sh` (picks profile from `uname`). Flags: `--light` (home-manager only), `--upgrade` (also `brew upgrade`); see `--help`.
 
 Secrets matching `config/shell/private_*` are gitignored — not in Nix.
 

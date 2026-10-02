@@ -3,6 +3,45 @@
 # Auto-setup script that handles everything
 set -e
 
+MODE="default"
+
+function usage() {
+    cat <<'EOF_USAGE'
+Usage: ./setup_nix.sh [--light | --upgrade]
+
+Applies the dotfiles config exactly as pinned in flake.lock. Never bumps flake
+inputs; do that yourself with `nix flake update <input>`.
+
+  (no flag)   home-manager switch, then (macOS) darwin-rebuild switch. Installs
+              casks newly added to the config, but does NOT upgrade or restart
+              apps that are already installed.
+  --light     home-manager switch only. Skips sudo, macOS system settings,
+              Homebrew, launchd and proxy setup. Fast; use it when you only
+              touched dotfiles, shell config or user packages.
+  --upgrade   Everything in the default run, then `brew update && brew upgrade`
+              (macOS). Upgrading casks can quit and restart running apps.
+  -h, --help  Show this help.
+
+Env: NIX_PROFILE=<name> overrides the profile (default: mbp on macOS, server on Linux).
+EOF_USAGE
+}
+
+function parse-args() {
+    for arg in "$@"; do
+        case "$arg" in
+            --light|--upgrade)
+                if [[ "$MODE" != "default" && "$MODE" != "${arg#--}" ]]; then
+                    echo "error: --light and --upgrade are mutually exclusive" >&2
+                    exit 2
+                fi
+                MODE="${arg#--}"
+                ;;
+            -h|--help) usage; exit 0 ;;
+            *) echo "error: unknown option: $arg" >&2; usage >&2; exit 2 ;;
+        esac
+    done
+}
+
 function nix-profile() {
     # Auto-detect profile based on system, or allow override with NIX_PROFILE env var
     if [ -n "$NIX_PROFILE" ]; then
@@ -45,8 +84,16 @@ function nix-switch() {
     fi
 }
 
-function nix-update() {
-    nix flake update --extra-experimental-features 'nix-command flakes'
+function brew-upgrade() {
+    if [[ "$(uname)" != "Darwin" ]]; then
+        return 0
+    fi
+    local brew=/opt/homebrew/bin/brew
+    echo "Updating Homebrew and upgrading installed apps..."
+    "$brew" update
+    echo "Outdated:"
+    "$brew" outdated --verbose || true
+    "$brew" upgrade
 }
 
 function darwin-switch() {
@@ -65,10 +112,16 @@ function darwin-switch() {
 }
 
 # Main execution
-echo "Starting Nix setup for $(nix-profile) profile..."
+parse-args "$@"
+echo "Starting Nix setup for $(nix-profile) profile ($MODE mode)..."
 
 setup-prerequisites
 nix-switch
-darwin-switch
+if [[ "$MODE" != "light" ]]; then
+    darwin-switch
+fi
+if [[ "$MODE" == "upgrade" ]]; then
+    brew-upgrade
+fi
 
 echo "Setup complete!"
