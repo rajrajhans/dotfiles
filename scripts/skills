@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compact inventory of skill files in a directory (not an agent session)."""
+"""Compact inventory of skill and command files in a directory (not an agent session)."""
 
 import argparse
 import os
@@ -12,9 +12,10 @@ import yaml
 
 
 SOURCES = (
-    ("CLAUDE", ".claude/skills"),
-    ("CODEX", ".agents/skills"),
-    ("CODEX", ".codex/skills"),
+    ("CLAUDE", ".claude/skills", "skill"),
+    ("CLAUDE", ".claude/commands", "command"),
+    ("CODEX", ".agents/skills", "skill"),
+    ("CODEX", ".codex/skills", "skill"),
 )
 
 
@@ -39,23 +40,43 @@ def clip(text, limit):
     return result + "…"
 
 
+ERRORS = (OSError, UnicodeError, yaml.YAMLError, ValueError, StopIteration)
+
+
+def frontmatter(path):
+    lines = path.read_text(encoding="utf-8-sig").splitlines()
+    data, body = {}, lines
+    if lines and lines[0].strip() == "---":
+        end = next(i for i in range(1, len(lines)) if lines[i].strip() in ("---", "..."))
+        data = yaml.safe_load("\n".join(lines[1:end])) or {}
+        body = lines[end + 1:]
+    if not isinstance(data, dict):
+        raise ValueError("frontmatter must be a mapping")
+    return data, body
+
+
 def metadata(path):
     try:
-        lines = path.read_text(encoding="utf-8-sig").splitlines()
-        data = {}
-        if lines and lines[0].strip() == "---":
-            end = next(i for i in range(1, len(lines)) if lines[i].strip() in ("---", "..."))
-            data = yaml.safe_load("\n".join(lines[1:end])) or {}
-        if not isinstance(data, dict):
-            raise ValueError("frontmatter must be a mapping")
+        data, _ = frontmatter(path)
         return clean(data.get("name") or path.parent.name), clean(data.get("description") or "No description")
-    except (OSError, UnicodeError, yaml.YAMLError, ValueError, StopIteration):
+    except ERRORS:
         return clean(path.parent.name), "Unreadable skill or invalid frontmatter"
+
+
+def command_metadata(path, folder):
+    # Claude Code namespaces nested commands with ":" and falls back to the first body line.
+    name = clean("/" + ":".join(path.relative_to(folder).with_suffix("").parts))
+    try:
+        data, body = frontmatter(path)
+        first = next((text.lstrip("#").strip() for text in body if text.strip()), "")
+        return name, clean(data.get("description") or first or "No description")
+    except ERRORS:
+        return name, "Unreadable command or invalid frontmatter"
 
 
 def discover(root):
     groups = []
-    for agent, relative in SOURCES:
+    for agent, relative, kind in SOURCES:
         folder = root / relative
         rows = []
         seen = set()
@@ -67,12 +88,17 @@ def discover(root):
                 continue
             seen.add(real)
             dirs[:] = sorted(d for d in dirs if not d.startswith("."))
-            if "SKILL.md" in files:
+            if kind == "command":
+                for file in sorted(files):
+                    if file.endswith(".md") and not file.startswith("."):
+                        path = Path(directory) / file
+                        rows.append((*command_metadata(path, folder), path))
+            elif "SKILL.md" in files:
                 path = Path(directory) / "SKILL.md"
                 rows.append((*metadata(path), path))
                 dirs[:] = []
         if rows:
-            groups.append((agent, relative, sorted(rows, key=lambda row: (row[0].casefold(), str(row[2])))))
+            groups.append((agent, relative, kind, sorted(rows, key=lambda row: (row[0].casefold(), str(row[2])))))
     return groups
 
 
@@ -88,7 +114,7 @@ def recipes(root):
 
 
 def main():
-    parser = argparse.ArgumentParser(prog="skills", description=__doc__, epilog="Scans .claude/skills, .agents/skills, .codex/skills, and docs/recipes. Excludes global and plugin skills.")
+    parser = argparse.ArgumentParser(prog="skills", description=__doc__, epilog="Scans .claude/skills, .claude/commands, .agents/skills, .codex/skills, and docs/recipes. Excludes global and plugin skills.")
     parser.add_argument("directory", nargs="?", default=".", help="directory to inspect (default: cwd)")
     parser.add_argument("-l", "--long", action="store_true", help="show full descriptions and file paths")
     args = parser.parse_args()
@@ -110,15 +136,21 @@ def main():
         location = "~/" + str(root.relative_to(Path.home()))
     except ValueError:
         location = str(root)
-    total = sum(len(rows) for _, _, rows in groups)
+    def count(kind):
+        total = sum(len(rows) for _, _, group_kind, rows in groups if group_kind == kind)
+        return f"{total} {kind}{'s' if total != 1 else ''}"
+
+    summary = count("skill")
+    if any(kind == "command" for _, _, kind, _ in groups):
+        summary += " · " + count("command")
     print()
-    line(f"  {clean(location)} · {total} skill{'s' if total != 1 else ''}", "1")
+    line(f"  {clean(location)} · {summary}", "1")
     line("  " + "─" * min(columns - 2, 72), "2")
     if not groups:
-        line("  No local skills found.", "2")
-        for _, relative in SOURCES:
+        line("  No local skills or commands found.", "2")
+        for _, relative, _ in SOURCES:
             line(f"  checked {relative}", "2")
-    for agent, relative, rows in groups:
+    for agent, relative, _, rows in groups:
         print()
         line(f"  {agent}  {len(rows)} · {relative}", "1;36" if agent == "CODEX" else "1;33")
         name_width = min(max(width(name) for name, _, _ in rows), 28, max(4, columns // 3))
