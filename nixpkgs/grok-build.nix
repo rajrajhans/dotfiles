@@ -1,16 +1,16 @@
 { lib, stdenv, fetchurl }:
 
 let
-  version = "0.2.93";
+  version = "1.0.46";
 
   platformMap = {
     aarch64-darwin = {
       upstream = "macos-aarch64";
-      hash = "sha256-Kpe6Z1vZkqqbmB4ug3dkYNlPRptRDAuO/ii1DSNtdnw=";
+      hash = "sha256-6NqjAjZMnDtqVUbVEc+9GrXl1AepsEKC9mBmXqQF+fM=";
     };
     x86_64-linux = {
       upstream = "linux-x86_64";
-      hash = "sha256-Tgc407VVDzyEK8CuafRogVxjKcAIoRDQwnppTcNAETU=";
+      hash = "sha256-QWJqUykjJBQLklVrnUL/VULj3NBK/4Xq+4aJ3UrbRPw=";
     };
   };
 
