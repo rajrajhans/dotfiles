@@ -57,6 +57,7 @@ in
     (pkgs.callPackage ../claude-code.nix { })
     (pkgs.callPackage ../codex.nix { })
     (pkgs.callPackage ../grok-build.nix { })
+    (pkgs.callPackage ../invideo-cli.nix { })
     (pkgs.callPackage ../pi.nix { })
 
     # Media utilities

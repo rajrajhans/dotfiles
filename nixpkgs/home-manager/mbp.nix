@@ -381,6 +381,7 @@ in
     codexPackage
     (pkgs.callPackage ../cursor-agent.nix { })
     (pkgs.callPackage ../grok-build.nix { })
+    (pkgs.callPackage ../invideo-cli.nix { })
     (pkgs.callPackage ../pi.nix { })
     tokmeter  # github:rajrajhans/tokmeter flake input
     diffnav
