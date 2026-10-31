@@ -226,3 +226,8 @@ command -v atuin >/dev/null 2>&1 && eval "$(atuin init zsh)"
 
 # Powerlevel10k user config (segment layout, colors).
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+# Inside Rex, put the app's own `rex` first. nix-darwin rebuilds PATH at shell
+# start, which drops REX_BIN_DIR and lets the Nix-pinned CLI (which can lag the
+# self-updating app) win. Outside Rex the variable is unset, so this is a no-op.
+[[ -n "$REX_BIN_DIR" ]] && export PATH="$REX_BIN_DIR:$PATH"
