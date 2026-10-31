@@ -127,6 +127,17 @@ in
   home.file.".config/iterm2/com.googlecode.iterm2.plist".source =
     ../../config/iterm2/com.googlecode.iterm2.plist;
 
+  # Rex runs alongside iTerm2. The app is a tester download that updates itself
+  # (Sparkle) and runs its own server, so only the CLI, terminfo and init.lua
+  # come from here — services.rex is Linux-only.
+  programs.rex = {
+    enable = true;
+    config = ../../config/rex/init.lua;
+    # ~/.ssh/config holds private hosts and isn't managed here; add the TERM
+    # guard to it once with `rex terminfo setup`.
+    sshGuard = false;
+  };
+
   home.activation.duti = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
     ${pkgs.duti}/bin/duti "$HOME/.duti"
   '';
