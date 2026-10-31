@@ -20,3 +20,26 @@ rex.bind("cmd+\\", "pane.split", { direction = "right" })
 -- Cmd+Opt+Left/Right cycle tabs, as in iTerm2.
 rex.bind("cmd+alt+left", "client.tab.previous")
 rex.bind("cmd+alt+right", "client.tab.next")
+
+-- Cmd+K clears, as iTerm2's Clear Buffer does; Rex defaults it to the session
+-- switcher, which moves to Cmd+Shift+O. At a shell prompt, reset wipes screen
+-- and scrollback and Ctrl+L redraws the prompt. Inside other programs (Claude
+-- Code, vim) only Ctrl+L is sent, since reset would drop the modes they set.
+local terminal = "com.superlogical.terminal"
+local shells = { zsh = true, bash = true, sh = true, fish = true }
+
+rex.action{
+  name  = "clear_buffer",
+  title = "Clear Buffer",
+  run   = function(ctx, args)
+    local proc = rex.block.call(terminal, "process", { block_id = ctx.block_id })
+    if proc and proc.foreground and shells[proc.foreground.name] then
+      rex.block.call(terminal, "reset", { block_id = ctx.block_id })
+    end
+    -- "\12" is Ctrl+L; Rex's Lua has no \x escapes.
+    rex.block.call(terminal, "write", { block_id = ctx.block_id, data = "\12" })
+  end,
+}
+
+rex.bind("cmd+k", "clear_buffer")
+rex.bind("cmd+shift+o", "session.switch")
