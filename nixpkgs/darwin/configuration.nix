@@ -56,6 +56,10 @@
       # fn key does nothing (0=nothing, 1=input source, 2=emoji, 3=dictation).
       # Not a typed nix-darwin option, so set via NSGlobalDomain raw.
       NSGlobalDomain.AppleFnUsageType = 0;
+      # Control-Command-T opens the one-off title dialog for the current iTerm tab.
+      "com.googlecode.iterm2".NSUserKeyEquivalents = {
+        "Edit Tab Title" = "^@t";
+      };
       # Disable built-in screenshot shortcuts (using Shottr instead),
       # free ⌘Space for Raycast, and disable the ⌘Esc Game Overlay.
       # symbolichotkeys IDs: 28=save screen, 29=copy screen, 30=save area,
