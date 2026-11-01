@@ -12,6 +12,7 @@ in
     ./modules/yazi.nix
     ./modules/micro.nix
     ./modules/pi.nix
+    ./modules/claude-code.nix
   ];
 
   home.username = username;

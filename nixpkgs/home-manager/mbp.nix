@@ -46,6 +46,7 @@ in
     ./modules/micro.nix
     ./modules/wakapi.nix
     ./modules/pi.nix
+    ./modules/claude-code.nix
   ];
 
   home.homeDirectory = "/Users/rajrajhans";
