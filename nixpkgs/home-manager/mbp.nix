@@ -41,6 +41,7 @@ in
 {
   imports = [
     ./modules/skills.nix
+    ./modules/codex-workers.nix
     ./modules/yazi.nix
     ./modules/micro.nix
     ./modules/wakapi.nix
