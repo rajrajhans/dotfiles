@@ -104,6 +104,7 @@
       # dev tools
       "iterm2"
       "cursor"
+      "t3-code"
       "sublime-text"
       "docker"
       "dbeaver-community"
