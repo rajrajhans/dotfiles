@@ -19,12 +19,6 @@
       url = "git+ssh://git@github.com/rajrajhans/tokmeter?ref=main";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # Rex CLI + home-manager module (Superlogical). The preview channel tracks the
-    # beta app; move to stable.tar.gz once a stable release is published.
-    rex = {
-      url = "https://pkgs.superlogical.com/rex/nix/preview.tar.gz";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs = inputs @ { self, nixpkgs, home-manager, nixpkgsUnstable, darwin, nix-homebrew, tokmeter, ... }:
@@ -56,10 +50,7 @@
             gitstatusOverlay
           ];
         };
-        modules = [
-          ./nixpkgs/home-manager/mbp.nix
-          inputs.rex.homeManagerModules.default
-        ];
+        modules = [ ./nixpkgs/home-manager/mbp.nix ];
         extraSpecialArgs = {
           pkgsUnstable = inputs.nixpkgsUnstable.legacyPackages.aarch64-darwin;
           tokmeter = inputs.tokmeter.packages.aarch64-darwin.default;

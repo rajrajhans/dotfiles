@@ -74,16 +74,6 @@
         "184" = { enabled = false; };
         "260" = { enabled = false; };
       };
-      # Rex: match the iTerm2 profile's font and drop the per-pane header bar
-      # iTerm2 doesn't have. Colors come from config/rex/iterm.itermcolors,
-      # imported once in the app (Settings > Theme > Import) since the import
-      # lives in the same domain as app state this must not overwrite.
-      "com.superlogical.rex" = {
-        "Workspace.terminalFontName" = "FiraCode Nerd Font Mono";
-        "Workspace.terminalFontPointSize" = 16.0;
-        "Workspace.terminalAllowsLigatures" = true;
-        "Workspace.showsPaneHeaders" = false;
-      };
     };
   };
 
