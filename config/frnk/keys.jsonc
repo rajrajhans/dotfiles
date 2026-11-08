@@ -1,0 +1,29 @@
+// Frnk key bindings, merged over its defaults by layer+key: the same layer+key
+// replaces a default, a new one adds, "action": "none" removes one.
+// Linked to ~/.config/frnk/keys.jsonc; the app reloads it on save. Edit this file
+// directly: `frnk config set keys` would replace the link with a copy.
+{
+  "bindings": [
+    // Splits: W/A/S/D = up/left/down/right, as in the editor and notes app.
+    { "layer": "direct", "key": "cmd+shift+w", "action": "split", "args": ["up"], "description": "Split up" },
+    { "layer": "direct", "key": "cmd+shift+a", "action": "split", "args": ["left"], "description": "Split left" },
+    { "layer": "direct", "key": "cmd+shift+s", "action": "split", "args": ["down"], "description": "Split down" },
+    { "layer": "direct", "key": "cmd+shift+d", "action": "split", "args": ["right"], "description": "Split right" },
+    { "layer": "direct", "key": "cmd+\\", "action": "split", "args": ["right"], "description": "Split right" },
+
+    // Tabs.
+    { "layer": "direct", "key": "cmd+opt+left", "action": "prev-tab", "description": "Previous tab" },
+    { "layer": "direct", "key": "cmd+opt+right", "action": "next-tab", "description": "Next tab" },
+    { "layer": "direct", "key": "cmd+shift+left", "action": "move-tab", "args": ["left"], "description": "Move tab left" },
+    { "layer": "direct", "key": "cmd+shift+right", "action": "move-tab", "args": ["right"], "description": "Move tab right" },
+
+    // Panes (cmd+opt+arrows are tabs now).
+    { "layer": "direct", "key": "ctrl+opt+left", "action": "focus", "args": ["left"], "description": "Focus pane left" },
+    { "layer": "direct", "key": "ctrl+opt+right", "action": "focus", "args": ["right"], "description": "Focus pane right" },
+    { "layer": "direct", "key": "ctrl+opt+up", "action": "focus", "args": ["up"], "description": "Focus pane up" },
+    { "layer": "direct", "key": "ctrl+opt+down", "action": "focus", "args": ["down"], "description": "Focus pane down" },
+
+    // Sidebar on cmd+1; tab 1 stays on prefix 1.
+    { "layer": "direct", "key": "cmd+1", "action": "sidebar", "description": "Toggle sidebar" }
+  ]
+}

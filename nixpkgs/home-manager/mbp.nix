@@ -90,6 +90,9 @@ in
   '';
   home.file.".zshrc".source = ../../config/shell/zshrc;
   home.file.".gitconfig".source = ../../config/git/gitconfig;
+  # Out of store so it stays editable: Frnk reloads it on save.
+  home.file.".config/frnk/keys.jsonc".source =
+    config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/config/frnk/keys.jsonc";
   home.file.".gitignore".source = ../../config/git/gitignore;
   home.file.".tmux.conf".source = ../../config/shell/tmux.conf;
   home.file.".iex.exs".source = ../../config/iex.exs;
