@@ -47,6 +47,7 @@ in
     ./modules/wakapi.nix
     ./modules/pi.nix
     ./modules/claude-code.nix
+    ./modules/zsh.nix
   ];
 
   home.homeDirectory = "/Users/rajrajhans";
@@ -102,26 +103,7 @@ in
   home.file.".pi/agent/extensions/pi-provider-litellm".source =
     "${pkgs.callPackage ../pi-provider-litellm.nix { }}/lib/pi-provider-litellm";
 
-  # Provide oh-my-zsh as a read-only symlink into the nix store.
-  # ZSH_COMPDUMP is overridden in zshrc to keep the completion cache writable.
-  home.file.".oh-my-zsh".source = "${pkgs.oh-my-zsh}/share/oh-my-zsh";
-
-  # OMZ custom plugins sourced from nixpkgs. ZSH_CUSTOM in zshrc points
-  # at ~/.oh-my-zsh-custom and OMZ loads each plugin from plugins/<name>/.
-  home.file.".oh-my-zsh-custom/plugins/fast-syntax-highlighting".source =
-    "${pkgs.zsh-fast-syntax-highlighting}/share/zsh/plugins/fast-syntax-highlighting";
-  home.file.".oh-my-zsh-custom/plugins/zsh-autosuggestions".source =
-    "${pkgs.zsh-autosuggestions}/share/zsh/plugins/zsh-autosuggestions";
-
-  # atuin config — shell history database & search (replaces the old
-  # zsh-fzf-history-search and per-directory-history OMZ plugins).
-  home.file.".config/atuin/config.toml".source = ../../config/atuin/config.toml;
-
-  # Powerlevel10k as an OMZ custom theme. ZSH_THEME="powerlevel10k/powerlevel10k"
-  # resolves to $ZSH_CUSTOM/themes/powerlevel10k/powerlevel10k.zsh-theme.
-  home.file.".oh-my-zsh-custom/themes/powerlevel10k".source =
-    "${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k";
-  home.file.".p10k.zsh".source = ../../config/shell/p10k.zsh;
+  # oh-my-zsh, its plugins, powerlevel10k and atuin's config: ./modules/zsh.nix.
 
   # iTerm2 — manage the prefs plist. Requires a one-time UI toggle in
   # iTerm2: Preferences → General → "Load preferences from a custom folder",

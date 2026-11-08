@@ -66,6 +66,18 @@
         modules = [ ./nixpkgs/home-manager/server.nix ];
         extraSpecialArgs = { pkgsUnstable = inputs.nixpkgsUnstable.legacyPackages.x86_64-linux; };
       };
+
+      # A dev box whose ~/.zshrc and direnvrc are owned by its own tooling:
+      # nix run home-manager -- switch --impure --flake .#box
+      box = home-manager.lib.homeManagerConfiguration {
+        pkgs = import nixpkgs {
+          system = "x86_64-linux";
+          config.allowUnfree = true;
+          overlays = [ gitstatusOverlay ];
+        };
+        modules = [ ./nixpkgs/home-manager/box.nix ];
+        extraSpecialArgs = { pkgsUnstable = inputs.nixpkgsUnstable.legacyPackages.x86_64-linux; };
+      };
     };
 
     darwinConfigurations = {
