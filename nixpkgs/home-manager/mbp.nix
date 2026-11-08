@@ -93,6 +93,8 @@ in
   # Out of store so it stays editable: Frnk reloads it on save.
   home.file.".config/frnk/keys.jsonc".source =
     config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/config/frnk/keys.jsonc";
+  home.file.".config/ghostty/config".source =
+    config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/config/ghostty/config";
   home.file.".gitignore".source = ../../config/git/gitignore;
   home.file.".tmux.conf".source = ../../config/shell/tmux.conf;
   home.file.".iex.exs".source = ../../config/iex.exs;
