@@ -4,12 +4,12 @@
 // directly: `frnk config set keys` would replace the link with a copy.
 {
   "bindings": [
-    // Splits: W/A/S/D = up/left/down/right, as in the editor and notes app.
+    // Splits: cmd+\ right and cmd+shift+d down, as in the terminal; up and left as in the editor.
+    { "layer": "direct", "key": "cmd+\\", "action": "split", "args": ["right"], "description": "Split right" },
+    { "layer": "direct", "key": "cmd+shift+d", "action": "split", "args": ["down"], "description": "Split down" },
+    { "layer": "direct", "key": "cmd+shift+s", "action": "split", "args": ["down"], "description": "Split down" },
     { "layer": "direct", "key": "cmd+shift+w", "action": "split", "args": ["up"], "description": "Split up" },
     { "layer": "direct", "key": "cmd+shift+a", "action": "split", "args": ["left"], "description": "Split left" },
-    { "layer": "direct", "key": "cmd+shift+s", "action": "split", "args": ["down"], "description": "Split down" },
-    { "layer": "direct", "key": "cmd+shift+d", "action": "split", "args": ["right"], "description": "Split right" },
-    { "layer": "direct", "key": "cmd+\\", "action": "split", "args": ["right"], "description": "Split right" },
 
     // Tabs.
     { "layer": "direct", "key": "cmd+opt+left", "action": "prev-tab", "description": "Previous tab" },
