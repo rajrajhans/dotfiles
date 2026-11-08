@@ -16,6 +16,7 @@ import fcntl
 import hashlib
 import json
 import os
+import re
 import shlex
 import shutil
 import signal
@@ -471,18 +472,49 @@ def authenticated_frames(target: str, frame: dict[str, Any]) -> list[dict[str, A
     return ([{"type": "auth", "token": token}] if token else []) + [frame]
 
 
+# Claude Code holds a peer message when the receiving session bypasses
+# permissions and the sender declares no permission mode ("no-mode-asserted").
+# A held message needs approval, which a headless `claude -p` session cannot
+# give, so it expires unseen. Senders declare their mode in the
+# cross-session-message envelope. Codex workers run tools without asking
+# (inside their sandbox), which is Claude's "bypass" class.
+PEER_TAG = "cross-session-message"
+PEER_MODE = "bypass"
+# Mirrors Claude's own body escaping: a "<" that could start the closing tag
+# becomes "<\". Claude only trusts an envelope whose body round-trips, so an
+# unescaped closing tag in a worker's reply would make it hold the message.
+PEER_CLOSE_TAG = re.compile(
+    r"<(?!\\)(?=[^A-Za-z0-9_\-<>]*/[^A-Za-z0-9_\-<>]*"
+    + re.escape(PEER_TAG)
+    + r"(?:[^A-Za-z0-9_\-]|$))",
+    re.IGNORECASE,
+)
+
+
+def peer_envelope(body: str, source: str | None) -> str:
+    sender = f' from="{source}"' if source else ""
+    escaped = PEER_CLOSE_TAG.sub(lambda _: "<\\", body)
+    return (
+        f'<{PEER_TAG}{sender} from-mode="{PEER_MODE}">\n{escaped}\n</{PEER_TAG}>'
+    )
+
+
 def send_message(target: str, content: str, source: str | None) -> str:
     message_id = str(uuid.uuid4())
+    if source:
+        parse_address(source)
     frame: dict[str, Any] = {
         "msgV": 1,
         "msg_id": message_id,
         "uuid": str(uuid.uuid4()),
         "type": "user",
-        "message": {"role": "user", "content": f"From Codex:\n\n{content}"},
+        "message": {
+            "role": "user",
+            "content": peer_envelope(f"From Codex:\n\n{content}", source),
+        },
         "priority": "next",
     }
     if source:
-        parse_address(source)
         frame["from"] = source
     write_frames(target, authenticated_frames(target, frame))
     return message_id
