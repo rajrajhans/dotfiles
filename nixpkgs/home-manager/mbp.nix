@@ -361,7 +361,11 @@ in
     bun
     atomicparsley
     vips
-    procps  # provides `watch`
+    # Only `watch` from procps: its `ps` lacks Apple's task-port entitlement, so macOS
+    # refuses it %mem/rss/time ("requires entitlement"); /bin/ps has it.
+    (pkgs.runCommand "watch-only" { } ''
+      mkdir -p $out/bin && ln -s ${procps}/bin/watch $out/bin/watch
+    '')
     tree
     (pkgs.callPackage ../notunes.nix { })
     (pkgs.callPackage ../alttab.nix { })
