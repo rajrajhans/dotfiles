@@ -1,9 +1,9 @@
 # Matches the iTerm profile: TokyoNight Night with its red selection and teal
-# bold, FiraCode Nerd Font Mono 16. Colours set here win over the theme.
+# bold, FiraCode Nerd Font Mono. Colours set here win over the theme.
 theme = TokyoNight Night
 selection-background = #8c2020
 selection-foreground = #c0caf5
 bold-color = #1abc9c
 
 font-family = FiraCode Nerd Font Mono
-font-size = 16
+font-size = 15
