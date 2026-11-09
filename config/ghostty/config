@@ -7,3 +7,12 @@ bold-color = #1abc9c
 
 font-family = FiraCode Nerd Font Mono
 font-size = 15
+
+# Line editing keys from the iTerm profile: word and line moves/deletes.
+keybind = alt+backspace=text:\x1b\x7f
+keybind = super+backspace=text:\x15
+keybind = alt+left=esc:b
+keybind = alt+right=esc:f
+keybind = super+left=text:\x01
+keybind = super+right=text:\x05
+keybind = alt+delete=esc:d
