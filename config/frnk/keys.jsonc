@@ -23,6 +23,9 @@
     { "layer": "direct", "key": "ctrl+opt+up", "action": "focus", "args": ["up"], "description": "Focus pane up" },
     { "layer": "direct", "key": "ctrl+opt+down", "action": "focus", "args": ["down"], "description": "Focus pane down" },
 
+    // cmd+k clears the screen (Ghostty's clear_screen) as in iTerm, not pane up.
+    { "layer": "vim-aware", "key": "cmd+k", "action": "none" },
+
     // Sidebar on cmd+1; tab 1 stays on prefix 1.
     { "layer": "direct", "key": "cmd+1", "action": "sidebar", "description": "Toggle sidebar" }
   ]

@@ -17,5 +17,8 @@ keybind = super+left=text:\x01
 keybind = super+right=text:\x05
 keybind = alt+delete=esc:d
 
+# Cmd+K clears the screen and scrollback, as in iTerm.
+keybind = super+k=clear_screen
+
 # Cmd+Enter does nothing: no fullscreen, and no Enter reaching the shell or agent.
 keybind = super+enter=ignore
