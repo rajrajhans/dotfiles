@@ -16,6 +16,9 @@ let
     out="$(nix build --no-link --print-out-paths --impure "$flake#homeConfigurations.box.activationPackage")"
     HOME_MANAGER_BACKUP_EXT=hm-bak "$out/activate"
   '';
+  # setup_nix.sh reads this, so a plain run here re-applies this config and not
+  # the Linux default, which would unlink the zsh layer and link ~/.bashrc.
+  profilePin = pkgs.writeText "nix-profile" "box\n";
 in
 {
   imports = [
@@ -43,5 +46,6 @@ in
 
   home.activation.hmRestore = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     run install -Dm755 ${hmRestore} "$HOME/.local/bin/hm-restore"
+    run install -Dm644 ${profilePin} "''${XDG_CONFIG_HOME:-$HOME/.config}/dotfiles/nix-profile"
   '';
 }

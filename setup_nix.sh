@@ -22,7 +22,12 @@ inputs; do that yourself with `nix flake update <input>`.
               (macOS). Upgrading casks can quit and restart running apps.
   -h, --help  Show this help.
 
-Env: NIX_PROFILE=<name> overrides the profile (default: mbp on macOS, server on Linux).
+Profile, first match wins:
+  1. NIX_PROFILE=<name> in the environment.
+  2. The name in ~/.config/dotfiles/nix-profile. A config that must not be
+     replaced by the OS default writes its own name there when it is applied
+     (box does), so later runs on that machine keep using it.
+  3. mbp on macOS, server on Linux.
 EOF_USAGE
 }
 
@@ -42,10 +47,18 @@ function parse-args() {
     done
 }
 
+PROFILE_PIN="${XDG_CONFIG_HOME:-$HOME/.config}/dotfiles/nix-profile"
+
 function nix-profile() {
-    # Auto-detect profile based on system, or allow override with NIX_PROFILE env var
+    # NIX_PROFILE, then the machine's pinned profile, then the OS default.
+    local pinned=""
+    if [ -r "$PROFILE_PIN" ]; then
+        pinned="$(head -n 1 "$PROFILE_PIN" | tr -cd 'A-Za-z0-9_-')"
+    fi
     if [ -n "$NIX_PROFILE" ]; then
         echo "$NIX_PROFILE"
+    elif [ -n "$pinned" ]; then
+        echo "$pinned"
     else
         case "$(uname)" in
             "Darwin") echo "mbp" ;;
@@ -64,8 +77,8 @@ function setup-prerequisites() {
 
 function impure-flag() {
     local profile=$(nix-profile)
-    # Server profile needs --impure to read $USER/$HOME env vars
-    if [[ "$profile" == "server" ]]; then
+    # The Linux profiles need --impure to read $USER/$HOME env vars
+    if [[ "$profile" != "mbp" ]]; then
         echo "--impure"
     fi
 }
