@@ -64,17 +64,14 @@ alias copus='c --model opus'
 alias csonnet='c --model sonnet'
 alias chaiku='c --model haiku'
 alias cfable='c --model fable'
-# Interactive Codex runs in its own process (--no-daemon), so its hooks fire inside
-# this terminal and the terminal can track the agent. `--remote unix://` still
-# joins the shared launchd app-server, for bridged workers.
-_codex_daemon_flag() { [[ " $* " == *" --remote "* || " $* " == *" --remote="* ]] || print -- --no-daemon; }
+# --no-daemon: a shared Codex server would run hooks outside the terminal, so it couldn't track the agent.
 codex() {
-	command codex --dangerously-bypass-approvals-and-sandbox $(_codex_daemon_flag "$@") "$@"
+	command codex --dangerously-bypass-approvals-and-sandbox --no-daemon "$@"
 }
 cx() {
 	command codex \
 		--dangerously-bypass-approvals-and-sandbox \
-		$(_codex_daemon_flag "$@") \
+		--no-daemon \
 		--cd "$PWD" \
 		"$@"
 }
