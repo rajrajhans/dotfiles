@@ -26,6 +26,9 @@
     // cmd+k clears the screen (Ghostty's clear_screen) as in iTerm, not pane up.
     { "layer": "vim-aware", "key": "cmd+k", "action": "none" },
 
+    // prefix y copies the focused pane's address (ws/tab/pane) to tell an agent.
+    { "layer": "prefix", "key": "y", "action": "copy-pane-id", "description": "Copy pane address" },
+
     // Sidebar on cmd+1; tab 1 stays on prefix 1.
     { "layer": "direct", "key": "cmd+1", "action": "sidebar", "description": "Toggle sidebar" }
   ]
