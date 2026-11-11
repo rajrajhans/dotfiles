@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "Quick Open",
+  "version": "0.3.1",
+  "description": "One search bar for open tabs, saved aliases, recently closed tabs, history and bookmarks.",
+  "permissions": [
+    "tabs",
+    "history",
+    "bookmarks",
+    "sessions",
+    "favicon",
+    "search",
+    "activeTab",
+    "scripting",
+    "storage",
+    "clipboardWrite"
+  ],
+  "optional_host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Quick Open (⌘⇧O)"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+O",
+        "mac": "Command+Shift+O"
+      },
+      "description": "Open the search bar"
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "palette.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}
