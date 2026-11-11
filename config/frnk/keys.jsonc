@@ -29,6 +29,8 @@
     // prefix y copies the focused pane's address (ws/tab/pane) to tell an agent.
     { "layer": "prefix", "key": "y", "action": "copy-pane-id", "description": "Copy pane address" },
 
+    { "layer": "direct", "key": "cmd+shift+o", "action": "palette", "description": "Search tabs, blocks, actions, clips, themes and screens" },
+
     // Sidebar on cmd+1; tab 1 stays on prefix 1.
     { "layer": "direct", "key": "cmd+1", "action": "sidebar", "description": "Toggle sidebar" }
   ]
