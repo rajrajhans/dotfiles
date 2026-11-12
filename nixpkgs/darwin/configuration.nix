@@ -64,8 +64,10 @@
       # free ⌘Space for Raycast, and disable the ⌘Esc Game Overlay.
       # symbolichotkeys IDs: 28=save screen, 29=copy screen, 30=save area,
       # 31=copy area, 64=show Spotlight search (⌘Space),
-      # 184=screenshot/recording options (⇧⌘5), 260=Game Overlay (⌘Esc).
+      # 184=screenshot/recording options (⇧⌘5), 260=Game Overlay (⌘Esc),
+      # 60=previous input source (⌃Space; skhd below uses it for Obsidian).
       "com.apple.symbolichotkeys".AppleSymbolicHotKeys = {
+        "60" = { enabled = false; };
         "28" = { enabled = false; };
         "29" = { enabled = false; };
         "30" = { enabled = false; };
@@ -75,6 +77,16 @@
         "260" = { enabled = false; };
       };
     };
+  };
+
+  # Global app hotkeys; each toggles: shows the app, or hides it when it's in front.
+  # skhd needs Accessibility (System Settings > Privacy &
+  # Security) once, and again when its nix store path changes.
+  services.skhd = {
+    enable = true;
+    skhdConfig = ''
+      ctrl - space : lsappinfo info "$(lsappinfo front)" | grep -q '"md.obsidian"' && osascript -e 'tell application "System Events" to set visible of process "Obsidian" to false' || open -a Obsidian
+    '';
   };
 
   # Homebrew (managed via nix-homebrew). GUI apps and a couple of CLIs that
@@ -166,5 +178,8 @@
       /usr/sbin/networksetup -setautoproxyurl "$service" "$pacURL" || true
       /usr/sbin/networksetup -setautoproxystate "$service" on || true
     done
+
+    # skhd keeps its old bindings when /etc/skhdrc is relinked; restart it to load new ones.
+    /bin/launchctl kickstart -k "gui/$(/usr/bin/id -u ${config.system.primaryUser})/org.nixos.skhd" || true
   '';
 }
