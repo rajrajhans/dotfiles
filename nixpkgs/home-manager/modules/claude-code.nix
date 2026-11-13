@@ -7,6 +7,13 @@ let
     # cache is about to expire; compact manually with /compact instead.
     # https://code.claude.com/docs/en/settings-reference#idlecompaction
     idleCompaction = false;
+    # No Co-Authored-By trailer, PR attribution line or session link.
+    # https://code.claude.com/docs/en/settings-reference#attribution
+    attribution = {
+      commit = "";
+      pr = "";
+      sessionUrl = false;
+    };
   };
 in
 {
