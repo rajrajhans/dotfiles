@@ -34,4 +34,23 @@ in
     fi
     rm -f "$claudeSettingsTmp"
   '';
+
+  # `attribution` stops Claude Code adding the trailer, but not the model copying one from a
+  # repo's history. Keep this rule in ~/.claude/CLAUDE.md as a marked block, so the rest of
+  # the file stays editable (Claude's /memory writes there too).
+  home.activation.claudeCodeMemory = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    claudeMemory="$HOME/.claude/CLAUDE.md"
+    claudeMemoryTmp="$(mktemp)"
+    {
+      if [ -f "$claudeMemory" ]; then
+        ${pkgs.gnused}/bin/sed '/^<!-- dotfiles:begin -->$/,/^<!-- dotfiles:end -->$/d' "$claudeMemory"
+      fi
+      cat ${../../../config/claude/CLAUDE.dotfiles.md}
+    } > "$claudeMemoryTmp"
+    if ! cmp -s "$claudeMemoryTmp" "$claudeMemory"; then
+      run mkdir -p "$HOME/.claude"
+      run cp "$claudeMemoryTmp" "$claudeMemory"
+    fi
+    rm -f "$claudeMemoryTmp"
+  '';
 }
