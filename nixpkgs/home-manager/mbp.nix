@@ -42,6 +42,7 @@ in
     ./modules/wakapi.nix
     ./modules/pi.nix
     ./modules/claude-code.nix
+    ./modules/frnk.nix
     ./modules/zsh.nix
   ];
 

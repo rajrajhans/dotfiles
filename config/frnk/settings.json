@@ -1,0 +1,19 @@
+{
+  "agent": {
+    "chat": {
+      "maxWidth": "full",
+      "size": 17
+    }
+  },
+  "globalHotkey": "opt+space",
+  "links": {
+    "routes": [
+      {
+        "action": "external",
+        "match": ["*://*/*"],
+        "modifiers": ["shift"],
+        "sources": ["terminal"]
+      }
+    ]
+  }
+}
