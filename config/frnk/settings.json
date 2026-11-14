@@ -1,8 +1,13 @@
 {
   "agent": {
     "chat": {
+      "font": "FiraCode Nerd Font Propo",
+      "size": 15,
+      "lineHeight": 1.3,
       "maxWidth": "full",
-      "size": 17
+      "boldColor": "red",
+      "linkPaths": true,
+      "listSpacing": "relaxed"
     }
   },
   "globalHotkey": "opt+space",
@@ -10,9 +15,30 @@
     "routes": [
       {
         "action": "external",
-        "match": ["*://*/*"],
-        "modifiers": ["shift"],
-        "sources": ["terminal"]
+        "match": [
+          "*://*/*",
+          "file:///*"
+        ],
+        "modifiers": [
+          "shift"
+        ],
+        "sources": [
+          "terminal"
+        ]
+      },
+      {
+        "action": "external",
+        "match": [
+          "*://*/*",
+          "file:///*"
+        ],
+        "modifiers": [
+          "shift",
+          "cmd"
+        ],
+        "sources": [
+          "chat"
+        ]
       }
     ]
   }
